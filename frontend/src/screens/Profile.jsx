@@ -65,7 +65,7 @@ export function Profile() {
       const dayName = date.toLocaleDateString('ru-RU', { weekday: 'short' })
 
       // Ищем чек-ин за этот день
-      const checkin = checkins.find(c => c.date === dateStr)
+      const checkin = checkins.find(c => c.date && c.date.startsWith(dateStr))
 
       result.push({
         name: dayName,
