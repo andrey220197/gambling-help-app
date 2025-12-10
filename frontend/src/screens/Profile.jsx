@@ -53,17 +53,27 @@ export function Profile() {
       .catch(() => {})
   }, [])
 
-  // Подготовка данных для графика
-  const chartData = checkins.slice(0, 7).map((c) => ({
-    name: new Date(c.date).toLocaleDateString('ru-RU', { weekday: 'short' }),
-    urge: c.urge
-  })).reverse()
-  
-  // Заполняем пустыми данными если нет чек-инов
-  if (chartData.length === 0) {
-    const days = ['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Вс']
-    days.forEach(d => chartData.push({ name: d, urge: 0 }))
-  }
+  // Подготовка данных для графика - всегда 7 дней
+  const chartData = (() => {
+    const result = []
+    const today = new Date()
+
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today)
+      date.setDate(date.getDate() - i)
+      const dateStr = date.toISOString().split('T')[0]
+      const dayName = date.toLocaleDateString('ru-RU', { weekday: 'short' })
+
+      // Ищем чек-ин за этот день
+      const checkin = checkins.find(c => c.date === dateStr)
+
+      result.push({
+        name: dayName,
+        value: checkin?.urge || 0
+      })
+    }
+    return result
+  })()
 
   // Форматирование денег
   const formatMoney = (val) => {
@@ -237,11 +247,11 @@ export function Profile() {
                   boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' 
                 }}
               />
-              <Bar dataKey="urge" radius={[4, 4, 0, 0]}>
+              <Bar dataKey="value" name="Тяга" radius={[4, 4, 0, 0]}>
                 {chartData.map((entry, index) => (
                   <Cell 
                     key={`cell-${index}`} 
-                    fill={entry.urge >= 7 ? '#f43f5e' : '#0ea5e9'} 
+                    fill={entry.value >= 7 ? '#f43f5e' : '#0ea5e9'} 
                   />
                 ))}
               </Bar>

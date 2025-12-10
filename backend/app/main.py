@@ -4,8 +4,10 @@ FastAPI приложение — Точка опоры.
 """
 
 import os
+import httpx
+WEBAPP_URL = "https://gambling-help-andrey220197.amvera.io"
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -77,6 +79,46 @@ if os.path.exists(FRONTEND_DIR):
     @app.get("/{path:path}")
     async def serve_spa(path: str):
         # Если это API путь — пропускаем
-        if path.startswith(("auth", "checkins", "streak", "articles", "sos", "tests", "diary", "money", "health")):
+        if path.startswith(("auth", "checkins", "streak", "articles", "sos", "tests", "diary", "money", "health", "bot")):
             return {"detail": "Not Found"}
         return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
+
+
+# Telegram Bot Webhook
+@app.post("/bot/webhook")
+async def telegram_webhook(request: Request):
+    """Обработка входящих сообщений от Telegram."""
+    data = await request.json()
+    
+    message = data.get("message", {})
+    text = message.get("text", "")
+    chat_id = message.get("chat", {}).get("id")
+    
+    if not chat_id:
+        return {"ok": True}
+    
+    # Обработка команды /start
+    if text.startswith("/start"):
+        welcome_text = """👋 Привет! Я — Точка опоры
+
+Это безопасное пространство для тех, кто хочет контролировать финансовые импульсы.
+
+Нажми кнопку ниже, чтобы открыть приложение 👇"""
+        
+        keyboard = {
+            "inline_keyboard": [[
+                {"text": "🚀 Открыть приложение", "web_app": {"url": WEBAPP_URL}}
+            ]]
+        }
+        
+        async with httpx.AsyncClient() as client:
+            await client.post(
+                f"https://api.telegram.org/bot{settings.BOT_TOKEN}/sendMessage",
+                json={
+                    "chat_id": chat_id,
+                    "text": welcome_text,
+                    "reply_markup": keyboard
+                }
+            )
+    
+    return {"ok": True}
