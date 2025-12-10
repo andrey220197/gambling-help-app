@@ -49,6 +49,46 @@ async def health():
     return {"status": "healthy", "version": "3.0.0"}
 
 
+# Telegram Bot Webhook (должен быть до SPA fallback)
+@app.post("/bot/webhook")
+async def telegram_webhook(request: Request):
+    """Обработка входящих сообщений от Telegram."""
+    data = await request.json()
+
+    message = data.get("message", {})
+    text = message.get("text", "")
+    chat_id = message.get("chat", {}).get("id")
+
+    if not chat_id:
+        return {"ok": True}
+
+    # Обработка команды /start
+    if text.startswith("/start"):
+        welcome_text = """👋 Привет! Я — Точка опоры
+
+Это безопасное пространство для тех, кто хочет контролировать финансовые импульсы.
+
+Нажми кнопку ниже, чтобы открыть приложение 👇"""
+
+        keyboard = {
+            "inline_keyboard": [[
+                {"text": "🚀 Открыть приложение", "web_app": {"url": WEBAPP_URL}}
+            ]]
+        }
+
+        async with httpx.AsyncClient() as client:
+            await client.post(
+                f"https://api.telegram.org/bot{settings.BOT_TOKEN}/sendMessage",
+                json={
+                    "chat_id": chat_id,
+                    "text": welcome_text,
+                    "reply_markup": keyboard
+                }
+            )
+
+    return {"ok": True}
+
+
 # API роутеры
 app.include_router(auth.router, prefix="/auth", tags=["auth"])
 app.include_router(checkins.router, prefix="/checkins", tags=["checkins"])
@@ -70,11 +110,11 @@ if os.path.exists(FRONTEND_DIR):
     assets_dir = os.path.join(FRONTEND_DIR, "assets")
     if os.path.exists(assets_dir):
         app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
-    
+
     @app.get("/")
     async def serve_index():
         return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
-    
+
     # SPA fallback — все неизвестные пути отдают index.html
     @app.get("/{path:path}")
     async def serve_spa(path: str):
@@ -82,43 +122,3 @@ if os.path.exists(FRONTEND_DIR):
         if path.startswith(("auth", "checkins", "streak", "articles", "sos", "tests", "diary", "money", "health", "bot")):
             return {"detail": "Not Found"}
         return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
-
-
-# Telegram Bot Webhook
-@app.post("/bot/webhook")
-async def telegram_webhook(request: Request):
-    """Обработка входящих сообщений от Telegram."""
-    data = await request.json()
-    
-    message = data.get("message", {})
-    text = message.get("text", "")
-    chat_id = message.get("chat", {}).get("id")
-    
-    if not chat_id:
-        return {"ok": True}
-    
-    # Обработка команды /start
-    if text.startswith("/start"):
-        welcome_text = """👋 Привет! Я — Точка опоры
-
-Это безопасное пространство для тех, кто хочет контролировать финансовые импульсы.
-
-Нажми кнопку ниже, чтобы открыть приложение 👇"""
-        
-        keyboard = {
-            "inline_keyboard": [[
-                {"text": "🚀 Открыть приложение", "web_app": {"url": WEBAPP_URL}}
-            ]]
-        }
-        
-        async with httpx.AsyncClient() as client:
-            await client.post(
-                f"https://api.telegram.org/bot{settings.BOT_TOKEN}/sendMessage",
-                json={
-                    "chat_id": chat_id,
-                    "text": welcome_text,
-                    "reply_markup": keyboard
-                }
-            )
-    
-    return {"ok": True}
