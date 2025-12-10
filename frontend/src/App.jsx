@@ -46,12 +46,35 @@ function LoadingScreen() {
   )
 }
 
+// Not in Telegram Screen
+function NotInTelegramScreen() {
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-white p-6 text-center">
+      <div className="w-20 h-20 bg-brand-100 rounded-full flex items-center justify-center mb-6">
+        <span className="text-4xl">📱</span>
+      </div>
+      <h1 className="text-2xl font-bold text-slate-800 mb-3">Точка опоры</h1>
+      <p className="text-slate-500 mb-6 max-w-sm">
+        Это приложение работает только внутри Telegram.
+        Откройте бота @mindbalance_ru_bot и нажмите кнопку "Открыть приложение".
+      </p>
+      <a
+        href="https://t.me/mindbalance_ru_bot"
+        className="bg-brand-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-brand-700 transition-colors"
+      >
+        Открыть в Telegram
+      </a>
+    </div>
+  )
+}
+
 function App() {
   const { 
     isOnboarding, isAuthenticated, isLoading, 
     login, loadUserData, token 
   } = useStore()
   const [appReady, setAppReady] = useState(false)
+  const [notInTelegram, setNotInTelegram] = useState(false)
   
   // Initialize Telegram WebApp
   useTelegram()
@@ -74,9 +97,17 @@ function App() {
       const tg = window.Telegram?.WebApp
       let initData = tg?.initData || ''
       
-      // Debug mode
-      if (!initData && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+      // Debug mode для локальной разработки
+      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+      if (!initData && isLocalhost) {
         initData = 'debug'
+      }
+      
+      // Если нет initData и не localhost — приложение открыто не из Telegram
+      if (!initData && !isLocalhost) {
+        setNotInTelegram(true)
+        setAppReady(true)
+        return
       }
       
       if (initData) {
@@ -92,6 +123,11 @@ function App() {
     
     initAuth()
   }, [])
+
+  // Show "Not in Telegram" screen
+  if (notInTelegram && !isAuthenticated) {
+    return <NotInTelegramScreen />
+  }
 
   // Show loading while initializing
   if (!appReady || isLoading) {
