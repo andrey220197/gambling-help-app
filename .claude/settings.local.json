@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./venv/Scripts/python.exe -m uvicorn:*)",
+      "Bash(curl:*)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJleHAiOjE3NjU5MjM0ODUsImlhdCI6MTc2NTMxODY4NX0.EkDNYxU4AQNebfXKZ_v8jo1OT8_1-Nhgbx0i0La7x40\")",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJleHAiOjE3NjU5MjM1MzMsImlhdCI6MTc2NTMxODczM30.D-GYSy-O7aTlmFjSRPY2L4Ne51UpQPrq8JW9NAA0PeI\")",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(npm run dev:*)",
+      "Bash(TOKEN=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoxLCJleHAiOjE3NjU5MjM4NDMsImlhdCI6MTc2NTMxOTA0M30.RhMhcDI9Iiz0sb8sa5TmUBJ-zPczOF8Cg7RzmnHUIhU\")",
+      "Bash(./venv/Scripts/python.exe:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(cat:*)"
+    ]
+  }
+}
