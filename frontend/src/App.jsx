@@ -21,27 +21,32 @@ import { ThoughtEntry } from './screens/ThoughtEntry'
 // Protected Route
 function ProtectedRoute({ children }) {
   const { isOnboarding, isAuthenticated } = useStore()
-  
+
   if (!isAuthenticated) {
     return <Navigate to="/onboarding" replace />
   }
-  
+
   if (isOnboarding) {
     return <Navigate to="/onboarding" replace />
   }
-  
+
   return <>{children}</>
 }
 
-// Loading Screen
-function LoadingScreen() {
+// Loading Screen with debug info
+function LoadingScreen({ debug }) {
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-white">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-white p-4">
       <div className="w-16 h-16 bg-brand-100 rounded-full flex items-center justify-center mb-4 animate-pulse">
         <span className="text-3xl">🎯</span>
       </div>
       <h1 className="text-xl font-bold text-slate-800 mb-2">Точка опоры</h1>
-      <p className="text-slate-500 text-sm">Загрузка...</p>
+      <p className="text-slate-500 text-sm mb-4">Загрузка...</p>
+      {debug && (
+        <div className="text-xs text-slate-400 bg-slate-50 p-3 rounded-lg max-w-xs break-all">
+          {debug}
+        </div>
+      )}
     </div>
   )
 }
@@ -69,20 +74,28 @@ function NotInTelegramScreen() {
 }
 
 function App() {
-  const { 
-    isOnboarding, isAuthenticated, isLoading, 
-    login, loadUserData, token 
+  const {
+    isOnboarding, isAuthenticated, isLoading,
+    login, loadUserData, token
   } = useStore()
   const [appReady, setAppReady] = useState(false)
   const [notInTelegram, setNotInTelegram] = useState(false)
-  
+  const [debugInfo, setDebugInfo] = useState('')
+
   // Initialize Telegram WebApp
   useTelegram()
 
   // Auth flow
   useEffect(() => {
     const initAuth = async () => {
-      // Если уже есть токен в store, проверяем данные
+      const tg = window.Telegram?.WebApp
+      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+
+      // Debug info
+      const hasInitData = tg?.initData ? 'yes(' + tg.initData.length + ')' : 'no'
+      setDebugInfo('TG:' + (tg ? 'yes' : 'no') + ' data:' + hasInitData)
+
+      // Если уже есть токен в store
       if (token && isAuthenticated) {
         try {
           await loadUserData()
@@ -92,123 +105,76 @@ function App() {
         setAppReady(true)
         return
       }
-      
+
       // Получаем initData от Telegram
-      const tg = window.Telegram?.WebApp
       let initData = tg?.initData || ''
-      
-      // Debug mode для локальной разработки
-      const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+
+      // Debug mode
       if (!initData && isLocalhost) {
         initData = 'debug'
       }
-      
-      // Если нет initData и не localhost — приложение открыто не из Telegram
+
+      // Если нет initData и не localhost
       if (!initData && !isLocalhost) {
-        setNotInTelegram(true)
-        setAppReady(true)
-        return
-      }
-      
-      if (initData) {
-        try {
-          await login(initData)
-        } catch (error) {
-          console.error('Auth failed:', error)
+        await new Promise(r => setTimeout(r, 500))
+        const tgRetry = window.Telegram?.WebApp
+        initData = tgRetry?.initData || ''
+
+        const hasInitDataRetry = tgRetry?.initData ? 'yes(' + tgRetry.initData.length + ')' : 'no'
+        setDebugInfo(prev => prev + ' retry:' + hasInitDataRetry)
+
+        if (!initData) {
+          setNotInTelegram(true)
+          setAppReady(true)
+          return
         }
       }
-      
+
+      if (initData) {
+        try {
+          setDebugInfo(prev => prev + ' auth...')
+          await login(initData)
+          setDebugInfo(prev => prev + ' OK')
+        } catch (error) {
+          console.error('Auth failed:', error)
+          setDebugInfo(prev => prev + ' ERR:' + error.message)
+        }
+      }
+
       setAppReady(true)
     }
-    
-    initAuth()
+
+    const timer = setTimeout(initAuth, 100)
+    return () => clearTimeout(timer)
   }, [])
 
-  // Show "Not in Telegram" screen
   if (notInTelegram && !isAuthenticated) {
     return <NotInTelegramScreen />
   }
 
-  // Show loading while initializing
   if (!appReady || isLoading) {
-    return <LoadingScreen />
+    return <LoadingScreen debug={debugInfo} />
   }
 
   return (
     <HashRouter>
       <Layout>
         <Routes>
-          {/* Onboarding */}
-          <Route 
-            path="/onboarding" 
+          <Route
+            path="/onboarding"
             element={
-              !isOnboarding && isAuthenticated 
-                ? <Navigate to="/" replace /> 
+              !isOnboarding && isAuthenticated
+                ? <Navigate to="/" replace />
                 : <Onboarding />
-            } 
+            }
           />
-          
-          {/* Protected Routes */}
-          <Route 
-            path="/" 
-            element={
-              <ProtectedRoute>
-                <Home />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/checkin" 
-            element={
-              <ProtectedRoute>
-                <CheckIn />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/profile" 
-            element={
-              <ProtectedRoute>
-                <Profile />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/sos" 
-            element={
-              <ProtectedRoute>
-                <SOS />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/articles" 
-            element={
-              <ProtectedRoute>
-                <Articles />
-              </ProtectedRoute>
-            } 
-          />
-          
-          {/* Diary Routes */}
-          <Route 
-            path="/diary" 
-            element={
-              <ProtectedRoute>
-                <ThoughtDiary />
-              </ProtectedRoute>
-            } 
-          />
-          <Route 
-            path="/diary/new" 
-            element={
-              <ProtectedRoute>
-                <ThoughtEntry />
-              </ProtectedRoute>
-            } 
-          />
-          
-          {/* Fallback */}
+          <Route path="/" element={<ProtectedRoute><Home /></ProtectedRoute>} />
+          <Route path="/checkin" element={<ProtectedRoute><CheckIn /></ProtectedRoute>} />
+          <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+          <Route path="/sos" element={<ProtectedRoute><SOS /></ProtectedRoute>} />
+          <Route path="/articles" element={<ProtectedRoute><Articles /></ProtectedRoute>} />
+          <Route path="/diary" element={<ProtectedRoute><ThoughtDiary /></ProtectedRoute>} />
+          <Route path="/diary/new" element={<ProtectedRoute><ThoughtEntry /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Layout>
