@@ -126,7 +126,6 @@ class TestEngine:
             "profile_updates": profile_updates,
             "onboarding_completed": profile_updates.get("onboarding_completed", False),
         }
-        }
     
     # =========================================
     # СОБЫТИЙНЫЕ ТЕСТЫ (D)
