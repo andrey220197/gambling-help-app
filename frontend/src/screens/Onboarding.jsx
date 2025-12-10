@@ -8,7 +8,7 @@ import { useStore } from '../store/useStore'
 import { TestCard } from '../components/TestCard'
 import { Button } from '../components/Button'
 import { MoneySettings } from '../components/MoneySettings'
-import { Shield, Brain, Lock, CheckCircle, Activity, AlertTriangle, Zap } from 'lucide-react'
+import { Shield, Brain, Lock, CheckCircle, Activity, AlertTriangle, Zap, RefreshCw } from 'lucide-react'
 import * as api from '../api/client'
 
 export function Onboarding() {
@@ -146,6 +146,12 @@ export function Onboarding() {
   }
 
   // ==========================================
+  // Сброс данных
+  const handleReset = () => {
+    localStorage.removeItem('tochka-opory-storage')
+    window.location.reload()
+  }
+
   // РЕНДЕР
   // ==========================================
 
@@ -153,7 +159,9 @@ export function Onboarding() {
   if (phase === 'intro') {
     const SlideIcon = slides[introSlide].icon
     return (
-      <div className="min-h-screen flex flex-col p-6 bg-white justify-between pb-10">
+      <div className="min-h-screen flex flex-col p-6 bg-white justify-between pb-10 relative">
+        {/* Кнопка сброса */}
+        <button onClick={handleReset} className="absolute top-4 right-4 p-2 text-slate-300 hover:text-slate-500" title="Сбросить данные"><RefreshCw size={20} /></button>
         <div className="flex-1 flex flex-col items-center justify-center text-center space-y-6">
           <div className="w-20 h-20 bg-brand-50 rounded-full flex items-center justify-center text-brand-600 mb-4 animate-fade-in">
             <SlideIcon size={40} />
