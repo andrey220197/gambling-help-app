@@ -37,7 +37,6 @@ function ProtectedRoute({ children }) {
 function LoadingScreen() {
   const [showReset, setShowReset] = useState(false)
 
-  // Показать кнопку сброса через 5 секунд (если застряло)
   useEffect(() => {
     const timer = setTimeout(() => setShowReset(true), 5000)
     return () => clearTimeout(timer)
@@ -92,7 +91,7 @@ function NotInTelegramScreen() {
 function App() {
   const {
     isOnboarding, isAuthenticated, isLoading,
-    login, loadUserData, token
+    login, loadUserData, token, logout
   } = useStore()
   const [appReady, setAppReady] = useState(false)
   const [notInTelegram, setNotInTelegram] = useState(false)
@@ -106,17 +105,6 @@ function App() {
       const tg = window.Telegram?.WebApp
       const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
 
-      // Если уже есть токен в store
-      if (token && isAuthenticated) {
-        try {
-          await loadUserData()
-        } catch (error) {
-          console.error('Failed to load user data:', error)
-        }
-        setAppReady(true)
-        return
-      }
-
       // Получаем initData от Telegram
       let initData = tg?.initData || ''
 
@@ -125,7 +113,7 @@ function App() {
         initData = 'debug'
       }
 
-      // Если нет initData и не localhost
+      // Если нет initData и не localhost — ждём немного
       if (!initData && !isLocalhost) {
         await new Promise(r => setTimeout(r, 500))
         const tgRetry = window.Telegram?.WebApp
@@ -138,11 +126,14 @@ function App() {
         }
       }
 
+      // Если есть initData — всегда делаем свежую авторизацию
       if (initData) {
         try {
           await login(initData)
         } catch (error) {
           console.error('Auth failed:', error)
+          // При ошибке очищаем старые данные
+          localStorage.removeItem('tochka-opory-storage')
         }
       }
 
