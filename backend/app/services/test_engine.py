@@ -54,7 +54,12 @@ class TestEngine:
         user_id: int,
         profile: Dict
     ) -> Optional[Dict]:
-        """Возвращает тест онбординга в зависимости от дня."""
+        """Возвращает тест онбординга.
+        
+        Упрощённый флоу:
+        - day 0/1: A1 (импульсивность) -> выбор трека
+        - day 2: A2 только для gambling, остальные сразу в ЛК
+        """
         
         day = profile.get("onboarding_day", 0)
         track = profile.get("track", "gambling")
@@ -65,19 +70,13 @@ class TestEngine:
             return self._format_test(LEVEL_A_TESTS["A1"])
         
         elif day == 2:
-            track_tests = {
-                "gambling": "A2",
-                "trading": "A3",
-                "digital": "A4",
-            }
-            test_code = track_tests.get(track, "A2")
-            return self._format_test(LEVEL_A_TESTS[test_code])
-        
-        elif day == 3:
-            return self._format_test(LEVEL_A_TESTS["A5"])
+            # Только для gambling показываем дополнительный тест
+            if track == "gambling":
+                return self._format_test(LEVEL_A_TESTS["A2"])
+            # Для trading/digital - сразу завершаем онбординг
+            return None
         
         return None
-    
     async def complete_onboarding_test(
         self,
         user_id: int,
@@ -85,7 +84,13 @@ class TestEngine:
         answers: Dict,
         score: int
     ) -> Dict:
-        """Обрабатывает завершение теста онбординга."""
+        """Обрабатывает завершение теста онбординга.
+        
+        Упрощённый флоу:
+        - A1 -> show_track_selection
+        - A2 (gambling) -> onboarding_completed
+        - Для trading/digital A1 сразу завершает онбординг после выбора трека
+        """
         
         test = LEVEL_A_TESTS.get(test_code)
         if not test:
@@ -105,15 +110,11 @@ class TestEngine:
                 "track_options": test.get("track_options", []),
             }
         
-        elif test_code in ["A2", "A3", "A4"]:
-            field_map = {"A2": "gambling_score", "A3": "trading_score", "A4": "digital_score"}
-            profile_updates[field_map[test_code]] = score
-            profile_updates["onboarding_day"] = 3
-        
-        elif test_code == "A5":
-            profile_updates["emotional_regulation_score"] = score
+        elif test_code == "A2":
+            # A2 завершает онбординг для gambling
+            profile_updates["gambling_score"] = score
             profile_updates["onboarding_completed"] = True
-            profile_updates["onboarding_day"] = 4
+            profile_updates["onboarding_day"] = 3
             risk_level = await self._calculate_risk_level(user_id, score)
             profile_updates["risk_level"] = risk_level
         
@@ -124,6 +125,7 @@ class TestEngine:
             "interpretation": interpretation,
             "profile_updates": profile_updates,
             "onboarding_completed": profile_updates.get("onboarding_completed", False),
+        }
         }
     
     # =========================================

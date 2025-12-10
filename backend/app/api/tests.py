@@ -101,21 +101,33 @@ async def select_track(
     db: aiosqlite.Connection = Depends(get_db)
 ):
     valid_tracks = ["gambling", "trading", "digital"]
-    
+
     if selection.track not in valid_tracks:
         raise HTTPException(status_code=400, detail="Invalid track")
-    
-    await db.execute(
-        """UPDATE user_profiles 
-           SET track = ?, updated_at = CURRENT_TIMESTAMP 
-           WHERE user_id = ?""",
-        (selection.track, user_id)
-    )
+
+    # Для trading/digital сразу завершаем онбординг (без дополнительного теста)
+    if selection.track in ["trading", "digital"]:
+        await db.execute(
+            """UPDATE user_profiles
+               SET track = ?, onboarding_completed = 1, risk_level = 'medium',
+                   updated_at = CURRENT_TIMESTAMP
+               WHERE user_id = ?""",
+            (selection.track, user_id)
+        )
+    else:
+        # Для gambling - продолжаем онбординг (будет тест A2)
+        await db.execute(
+            """UPDATE user_profiles
+               SET track = ?, updated_at = CURRENT_TIMESTAMP
+               WHERE user_id = ?""",
+            (selection.track, user_id)
+        )
     await db.commit()
-    
+
     return {
         "success": True,
         "track": selection.track,
+        "onboarding_completed": selection.track in ["trading", "digital"],
     }
 
 
