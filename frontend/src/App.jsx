@@ -33,8 +33,16 @@ function ProtectedRoute({ children }) {
   return <>{children}</>
 }
 
-// Loading Screen with debug info
-function LoadingScreen({ debug }) {
+// Loading Screen
+function LoadingScreen() {
+  const [showReset, setShowReset] = useState(false)
+
+  // Показать кнопку сброса через 5 секунд (если застряло)
+  useEffect(() => {
+    const timer = setTimeout(() => setShowReset(true), 5000)
+    return () => clearTimeout(timer)
+  }, [])
+
   const handleReset = () => {
     localStorage.removeItem('tochka-opory-storage')
     window.location.reload()
@@ -47,17 +55,14 @@ function LoadingScreen({ debug }) {
       </div>
       <h1 className="text-xl font-bold text-slate-800 mb-2">Точка опоры</h1>
       <p className="text-slate-500 text-sm mb-4">Загрузка...</p>
-      {debug && (
-        <div className="text-xs text-slate-400 bg-slate-50 p-3 rounded-lg max-w-xs break-all mb-4">
-          {debug}
-        </div>
+      {showReset && (
+        <button
+          onClick={handleReset}
+          className="text-xs text-slate-400 underline"
+        >
+          Проблемы с загрузкой? Сбросить
+        </button>
       )}
-      <button 
-        onClick={handleReset}
-        className="text-xs text-slate-400 underline"
-      >
-        Сбросить данные
-      </button>
     </div>
   )
 }
@@ -91,7 +96,6 @@ function App() {
   } = useStore()
   const [appReady, setAppReady] = useState(false)
   const [notInTelegram, setNotInTelegram] = useState(false)
-  const [debugInfo, setDebugInfo] = useState('')
 
   // Initialize Telegram WebApp
   useTelegram()
@@ -102,20 +106,12 @@ function App() {
       const tg = window.Telegram?.WebApp
       const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
 
-      // Debug info
-      const hasInitData = tg?.initData ? 'yes(' + tg.initData.length + ')' : 'no'
-      const hasToken = token ? 'yes' : 'no'
-      setDebugInfo('TG:' + (tg ? 'yes' : 'no') + ' data:' + hasInitData + ' token:' + hasToken)
-
       // Если уже есть токен в store
       if (token && isAuthenticated) {
-        setDebugInfo(prev => prev + ' loading...')
         try {
           await loadUserData()
-          setDebugInfo(prev => prev + ' OK')
         } catch (error) {
           console.error('Failed to load user data:', error)
-          setDebugInfo(prev => prev + ' ERR:' + error.message)
         }
         setAppReady(true)
         return
@@ -135,9 +131,6 @@ function App() {
         const tgRetry = window.Telegram?.WebApp
         initData = tgRetry?.initData || ''
 
-        const hasInitDataRetry = tgRetry?.initData ? 'yes(' + tgRetry.initData.length + ')' : 'no'
-        setDebugInfo(prev => prev + ' retry:' + hasInitDataRetry)
-
         if (!initData) {
           setNotInTelegram(true)
           setAppReady(true)
@@ -147,12 +140,9 @@ function App() {
 
       if (initData) {
         try {
-          setDebugInfo(prev => prev + ' auth...')
           await login(initData)
-          setDebugInfo(prev => prev + ' OK')
         } catch (error) {
           console.error('Auth failed:', error)
-          setDebugInfo(prev => prev + ' ERR:' + error.message)
         }
       }
 
@@ -168,7 +158,7 @@ function App() {
   }
 
   if (!appReady || isLoading) {
-    return <LoadingScreen debug={debugInfo} />
+    return <LoadingScreen />
   }
 
   return (
