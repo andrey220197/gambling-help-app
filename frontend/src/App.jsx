@@ -35,6 +35,11 @@ function ProtectedRoute({ children }) {
 
 // Loading Screen with debug info
 function LoadingScreen({ debug }) {
+  const handleReset = () => {
+    localStorage.removeItem('tochka-opory-storage')
+    window.location.reload()
+  }
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-white p-4">
       <div className="w-16 h-16 bg-brand-100 rounded-full flex items-center justify-center mb-4 animate-pulse">
@@ -43,10 +48,16 @@ function LoadingScreen({ debug }) {
       <h1 className="text-xl font-bold text-slate-800 mb-2">Точка опоры</h1>
       <p className="text-slate-500 text-sm mb-4">Загрузка...</p>
       {debug && (
-        <div className="text-xs text-slate-400 bg-slate-50 p-3 rounded-lg max-w-xs break-all">
+        <div className="text-xs text-slate-400 bg-slate-50 p-3 rounded-lg max-w-xs break-all mb-4">
           {debug}
         </div>
       )}
+      <button 
+        onClick={handleReset}
+        className="text-xs text-slate-400 underline"
+      >
+        Сбросить данные
+      </button>
     </div>
   )
 }
@@ -93,14 +104,18 @@ function App() {
 
       // Debug info
       const hasInitData = tg?.initData ? 'yes(' + tg.initData.length + ')' : 'no'
-      setDebugInfo('TG:' + (tg ? 'yes' : 'no') + ' data:' + hasInitData)
+      const hasToken = token ? 'yes' : 'no'
+      setDebugInfo('TG:' + (tg ? 'yes' : 'no') + ' data:' + hasInitData + ' token:' + hasToken)
 
       // Если уже есть токен в store
       if (token && isAuthenticated) {
+        setDebugInfo(prev => prev + ' loading...')
         try {
           await loadUserData()
+          setDebugInfo(prev => prev + ' OK')
         } catch (error) {
           console.error('Failed to load user data:', error)
+          setDebugInfo(prev => prev + ' ERR:' + error.message)
         }
         setAppReady(true)
         return
