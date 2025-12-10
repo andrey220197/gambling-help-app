@@ -16,7 +16,7 @@ export const useStore = create(
       token: null,
       userId: null,
       recoveryCode: null,
-      isLoading: true,
+      isLoading: false,
       isAuthenticated: false,
       
       // =============================================
