@@ -6,5 +6,4 @@ build:
 
 run:
   containerPort: 8000
-  persistentVolumeClaimName: gambling-help-data
-  persistentVolumePath: /app/backend/data
+  persistenceMount: /app/backend/data
