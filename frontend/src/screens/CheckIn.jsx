@@ -247,6 +247,22 @@ export function CheckIn() {
           {renderSlider('mood', 'Настроение', todaysCheckin.mood, () => {}, '', '', true)}
         </div>
 
+        {/* Кнопка "Проиграл сегодня" - видна если не было срыва */}
+        {!todaysCheckin.relapse && (
+          <button
+            onClick={() => {
+              triggerHaptic('heavy')
+              setPreviousStreak(streak?.current || 0)
+              setRelapse(true)
+              setStep('relapse_confirm')
+            }}
+            className="w-full p-4 rounded-xl border-2 border-rose-200 bg-rose-50 text-rose-700 font-medium hover:bg-rose-100 transition-colors flex items-center justify-center gap-2"
+          >
+            <AlertOctagon size={18} />
+            Проиграл сегодня
+          </button>
+        )}
+
         <Link to="/">
           <Button variant="secondary" fullWidth>На главную</Button>
         </Link>
