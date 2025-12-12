@@ -120,9 +120,15 @@ ARTICLES = [
 ]
 
 
-async def seed_articles():
+async def seed_articles(db=None):
     """Заполняет базу статьями."""
-    async with aiosqlite.connect("./app.db") as db:
+    should_close = False
+    if db is None:
+        from app.config import settings
+        db_path = settings.DATABASE_URL.replace('sqlite:///', '')
+        db = await aiosqlite.connect(db_path)
+        should_close = True
+    try:
         # Очищаем таблицу
         await db.execute("DELETE FROM articles")
         
@@ -137,7 +143,10 @@ async def seed_articles():
             )
         
         await db.commit()
-        print(f"✅ Добавлено {len(ARTICLES)} статей")
+        print(f"[OK] Seeded {len(ARTICLES)} articles")
+    finally:
+        if should_close:
+            await db.close()
 
 
 if __name__ == "__main__":

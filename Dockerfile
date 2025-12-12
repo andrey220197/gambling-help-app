@@ -20,8 +20,8 @@ COPY . /app/
 # Собираем фронтенд
 RUN cd /app/frontend && npm run build
 
-# Заполняем базу статьями
-RUN cd /app/backend && python -m app.db.seed_articles || true
+# Создаём папку для persistent data
+RUN mkdir -p /app/backend/data
 
 WORKDIR /app/backend
 

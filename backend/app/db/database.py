@@ -20,4 +20,15 @@ async def init_db():
     async with aiosqlite.connect(DATABASE_PATH) as db:
         await db.executescript(SCHEMA_V3)
         await db.commit()
-        print("[OK] Database v3 initialized")
+        print(f"[OK] Database initialized at {DATABASE_PATH}")
+
+        # Seed articles if empty
+        cursor = await db.execute("SELECT COUNT(*) FROM articles")
+        count = (await cursor.fetchone())[0]
+        if count == 0:
+            try:
+                from app.db.seed_articles import seed_articles
+                await seed_articles(db)
+                print("[OK] Articles seeded")
+            except Exception as e:
+                print(f"[WARN] Could not seed articles: {e}")
