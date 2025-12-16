@@ -6,13 +6,19 @@ import React, { useState, useEffect } from 'react'
 import { useStore } from '../store/useStore'
 import { MoneySettings } from '../components/MoneySettings'
 import {
-  LineChart, Line, XAxis, Tooltip, ResponsiveContainer, Legend
+  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell
 } from 'recharts'
 import {
   LogOut, Wallet, ChevronDown, ChevronUp, BarChart2
 } from 'lucide-react'
 import { TRACK_NAMES, TRACK_EMOJIS } from '../constants'
 import * as api from '../api/client'
+
+const METRICS = [
+  { key: 'urge', name: 'Тяга', color: '#f43f5e', bgColor: 'bg-rose-500', lightBg: 'bg-rose-50' },
+  { key: 'stress', name: 'Стресс', color: '#f59e0b', bgColor: 'bg-amber-500', lightBg: 'bg-amber-50' },
+  { key: 'mood', name: 'Настроение', color: '#10b981', bgColor: 'bg-emerald-500', lightBg: 'bg-emerald-50' },
+]
 
 export function Profile() {
   const {
@@ -22,6 +28,7 @@ export function Profile() {
 
   const [showMoneySettings, setShowMoneySettings] = useState(false)
   const [moneyStats, setMoneyStats] = useState(null)
+  const [activeMetric, setActiveMetric] = useState(0) // 0=urge, 1=stress, 2=mood
 
   useEffect(() => {
     api.getMoneyStats()
@@ -55,18 +62,16 @@ export function Profile() {
   const lostTotal = moneyStats?.lostTotal || 0
   const track = profile?.track || 'gambling'
 
+  const currentMetric = METRICS[activeMetric]
+
   const CustomTooltip = ({ active, payload, label }) => {
-    if (active && payload && payload.length) {
+    if (active && payload && payload.length && payload[0].value !== null) {
       return (
-        <div className="bg-white p-3 rounded-xl shadow-lg border border-slate-100">
-          <p className="font-bold text-slate-700 mb-1">{label}</p>
-          {payload.map((entry, index) => (
-            entry.value !== null && (
-              <p key={index} style={{ color: entry.color }} className="text-sm">
-                {entry.name}: <span className="font-bold">{entry.value}</span>
-              </p>
-            )
-          ))}
+        <div className="bg-white p-2 rounded-lg shadow-lg border border-slate-100">
+          <p className="text-xs text-slate-500">{label}</p>
+          <p className="font-bold" style={{ color: currentMetric.color }}>
+            {payload[0].value}/10
+          </p>
         </div>
       )
     }
@@ -138,21 +143,77 @@ export function Profile() {
       </div>
 
       <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
-        <h3 className="font-bold text-slate-800 mb-4 text-sm flex items-center gap-2">
-          <BarChart2 size={16} className="text-slate-400"/>
-          Динамика (7 дней)
-        </h3>
-        <div className="h-48 w-full">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
+            <BarChart2 size={16} className="text-slate-400"/>
+            Динамика (7 дней)
+          </h3>
+        </div>
+
+        {/* Переключатель метрик */}
+        <div className="flex gap-2 mb-4">
+          {METRICS.map((metric, idx) => (
+            <button
+              key={metric.key}
+              onClick={() => setActiveMetric(idx)}
+              className={`flex-1 py-2 px-3 rounded-xl text-xs font-bold transition-all ${
+                activeMetric === idx
+                  ? `${metric.lightBg} border-2`
+                  : 'bg-slate-50 text-slate-500 border-2 border-transparent'
+              }`}
+              style={activeMetric === idx ? { color: metric.color, borderColor: metric.color } : {}}
+            >
+              {metric.name}
+            </button>
+          ))}
+        </div>
+
+        {/* Столбчатый график */}
+        <div className="h-40 w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData}>
-              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#94a3b8' }} dy={10} />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend verticalAlign="top" height={36} formatter={(value) => <span className="text-xs text-slate-600">{value}</span>} />
-              <Line type="monotone" dataKey="urge" name="Тяга" stroke="#f43f5e" strokeWidth={2} dot={{ fill: '#f43f5e', r: 3 }} connectNulls />
-              <Line type="monotone" dataKey="stress" name="Стресс" stroke="#f59e0b" strokeWidth={2} dot={{ fill: '#f59e0b', r: 3 }} connectNulls />
-              <Line type="monotone" dataKey="mood" name="Настроение" stroke="#10b981" strokeWidth={2} dot={{ fill: '#10b981', r: 3 }} connectNulls />
-            </LineChart>
+            <BarChart data={chartData} barCategoryGap="20%">
+              <XAxis
+                dataKey="name"
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 11, fill: '#94a3b8' }}
+              />
+              <YAxis
+                domain={[0, 10]}
+                axisLine={false}
+                tickLine={false}
+                tick={{ fontSize: 10, fill: '#cbd5e1' }}
+                width={20}
+              />
+              <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0,0,0,0.04)' }} />
+              <Bar
+                dataKey={currentMetric.key}
+                radius={[6, 6, 0, 0]}
+              >
+                {chartData.map((entry, index) => (
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={entry[currentMetric.key] !== null ? currentMetric.color : '#e2e8f0'}
+                    opacity={entry[currentMetric.key] !== null ? 0.85 : 0.3}
+                  />
+                ))}
+              </Bar>
+            </BarChart>
           </ResponsiveContainer>
+        </div>
+
+        {/* Средние значения */}
+        <div className="flex justify-between mt-4 pt-3 border-t border-slate-100">
+          {METRICS.map((metric) => {
+            const values = chartData.filter(d => d[metric.key] !== null).map(d => d[metric.key])
+            const avg = values.length ? (values.reduce((a, b) => a + b, 0) / values.length).toFixed(1) : '—'
+            return (
+              <div key={metric.key} className="text-center">
+                <div className="text-xs text-slate-400 mb-1">{metric.name}</div>
+                <div className="font-bold text-sm" style={{ color: metric.color }}>{avg}</div>
+              </div>
+            )
+          })}
         </div>
       </div>
 
