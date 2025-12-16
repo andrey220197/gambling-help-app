@@ -21,15 +21,15 @@ const METRICS = [
 ]
 
 const ACHIEVEMENTS = [
-  { days: 1, emoji: '🌱', name: 'Первый шаг', desc: 'Начало пути' },
-  { days: 3, emoji: '💪', name: '3 дня', desc: 'Набираешь силу' },
-  { days: 7, emoji: '🔥', name: 'Неделя', desc: 'Первая неделя!' },
-  { days: 14, emoji: '⭐', name: '2 недели', desc: 'Уже привычка' },
-  { days: 30, emoji: '🏆', name: 'Месяц', desc: 'Серьёзный результат' },
-  { days: 60, emoji: '💎', name: '2 месяца', desc: 'Впечатляет!' },
-  { days: 90, emoji: '👑', name: '3 месяца', desc: 'Мастер контроля' },
-  { days: 180, emoji: '🎯', name: 'Полгода', desc: 'Невероятно!' },
-  { days: 365, emoji: '🏅', name: 'Год', desc: 'Легенда!' },
+  { days: 1, emoji: '🌱', name: 'Первый шаг', desc: 'Первый чек-ин в приложении' },
+  { days: 3, emoji: '💪', name: '3 дня', desc: '3 дня подряд без срыва' },
+  { days: 7, emoji: '🔥', name: 'Неделя', desc: '7 дней подряд без срыва' },
+  { days: 14, emoji: '⭐', name: '2 недели', desc: '14 дней подряд без срыва' },
+  { days: 30, emoji: '🏆', name: 'Месяц', desc: '30 дней подряд без срыва' },
+  { days: 60, emoji: '💎', name: '2 месяца', desc: '60 дней подряд без срыва' },
+  { days: 90, emoji: '👑', name: '3 месяца', desc: '90 дней подряд без срыва' },
+  { days: 180, emoji: '🎯', name: 'Полгода', desc: '180 дней подряд без срыва' },
+  { days: 365, emoji: '🏅', name: 'Год', desc: '365 дней подряд без срыва' },
 ]
 
 const REMINDER_HOURS = [
@@ -88,6 +88,7 @@ export function Profile() {
       const dateStr = date.toISOString().split('T')[0]
       const dayName = date.toLocaleDateString('ru-RU', { weekday: 'short' })
       const checkin = checkins.find(c => c.date && c.date.startsWith(dateStr))
+      const isToday = dateStr === todayStr
 
       result.push({
         name: dayName,
@@ -108,11 +109,12 @@ export function Profile() {
   const currentStreak = streak?.current || 0
   const bestStreak = streak?.best || 0
 
-  // Календарь: начинаем с первого чек-ина, показываем до сегодня (макс 35 дней)
+  // Календарь: начинаем с первого чек-ина, показываем до сегодня (макс 56 дней = 8 недель)
   const calendarData = (() => {
     const result = []
     const today = new Date()
     today.setHours(0, 0, 0, 0)
+    const todayStr = today.toISOString().split('T')[0]
 
     // Находим дату первого чек-ина
     let startDate = new Date(today)
@@ -127,7 +129,7 @@ export function Profile() {
 
     // Ограничиваем максимум 35 днями от сегодня
     const maxStart = new Date(today)
-    maxStart.setDate(maxStart.getDate() - 34)
+    maxStart.setDate(maxStart.getDate() - 55)
     if (startDate < maxStart) {
       startDate = maxStart
     }
@@ -137,11 +139,13 @@ export function Profile() {
     while (current <= today) {
       const dateStr = current.toISOString().split('T')[0]
       const checkin = checkins.find(c => c.date && c.date.startsWith(dateStr))
+      const isToday = dateStr === todayStr
       result.push({
         date: dateStr,
         day: current.getDate(),
         hasCheckin: !!checkin,
         relapse: checkin?.relapse || false,
+        isToday,
       })
       current.setDate(current.getDate() + 1)
     }
@@ -212,6 +216,8 @@ export function Profile() {
             <div
               key={idx}
               className={`aspect-square rounded-md flex items-center justify-center text-xs font-medium transition-all ${
+                day.isToday ? 'ring-2 ring-brand-500 ring-offset-1' : ''
+              } ${
                 day.relapse
                   ? 'bg-rose-100 text-rose-600'
                   : day.hasCheckin
@@ -234,8 +240,8 @@ export function Profile() {
             <span className="text-xs text-slate-500">Срыв</span>
           </div>
           <div className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded bg-slate-50"></div>
-            <span className="text-xs text-slate-500">Нет данных</span>
+            <div className="w-3 h-3 rounded ring-2 ring-brand-500"></div>
+            <span className="text-xs text-slate-500">Сегодня</span>
           </div>
         </div>
       </div>
@@ -254,6 +260,7 @@ export function Profile() {
               <div className="text-3xl grayscale opacity-50">{nextAchievement.emoji}</div>
               <div className="flex-1">
                 <div className="font-bold text-slate-700">{nextAchievement.name}</div>
+                <div className="text-xs text-slate-500">{nextAchievement.desc}</div>
                 <div className="text-xs text-slate-500">
                   Ещё {nextAchievement.days - currentStreak} {nextAchievement.days - currentStreak === 1 ? 'день' : 'дней'}
                 </div>
@@ -279,6 +286,7 @@ export function Profile() {
               <div key={achievement.days} className="text-center p-3 bg-slate-50 rounded-xl">
                 <div className="text-2xl mb-1">{achievement.emoji}</div>
                 <div className="text-xs font-bold text-slate-700">{achievement.name}</div>
+                <div className="text-[10px] text-slate-400 mt-0.5">{achievement.desc}</div>
               </div>
             ))}
           </div>
