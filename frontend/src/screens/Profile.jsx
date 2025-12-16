@@ -108,22 +108,44 @@ export function Profile() {
   const currentStreak = streak?.current || 0
   const bestStreak = streak?.best || 0
 
-  // Календарь за последние 35 дней (5 недель)
+  // Календарь: начинаем с первого чек-ина, показываем до сегодня (макс 35 дней)
   const calendarData = (() => {
     const result = []
     const today = new Date()
-    for (let i = 34; i >= 0; i--) {
-      const date = new Date(today)
-      date.setDate(date.getDate() - i)
-      const dateStr = date.toISOString().split('T')[0]
+    today.setHours(0, 0, 0, 0)
+
+    // Находим дату первого чек-ина
+    let startDate = new Date(today)
+    if (checkins.length > 0) {
+      const oldestCheckin = checkins[checkins.length - 1]
+      if (oldestCheckin?.date) {
+        const firstDate = new Date(oldestCheckin.date)
+        firstDate.setHours(0, 0, 0, 0)
+        startDate = firstDate
+      }
+    }
+
+    // Ограничиваем максимум 35 днями от сегодня
+    const maxStart = new Date(today)
+    maxStart.setDate(maxStart.getDate() - 34)
+    if (startDate < maxStart) {
+      startDate = maxStart
+    }
+
+    // Генерируем дни от startDate до сегодня
+    const current = new Date(startDate)
+    while (current <= today) {
+      const dateStr = current.toISOString().split('T')[0]
       const checkin = checkins.find(c => c.date && c.date.startsWith(dateStr))
       result.push({
         date: dateStr,
-        day: date.getDate(),
+        day: current.getDate(),
         hasCheckin: !!checkin,
         relapse: checkin?.relapse || false,
       })
+      current.setDate(current.getDate() + 1)
     }
+
     return result
   })()
 
@@ -183,7 +205,7 @@ export function Profile() {
       <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
         <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2 mb-4">
           <Calendar size={16} className="text-slate-400"/>
-          Календарь (5 недель)
+          Календарь ({calendarData.length} {calendarData.length === 1 ? 'день' : calendarData.length < 5 ? 'дня' : 'дней'})
         </h3>
         <div className="grid grid-cols-7 gap-1.5">
           {calendarData.map((day, idx) => (

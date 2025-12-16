@@ -249,18 +249,23 @@ export function CheckIn() {
 
         {/* Кнопка "Проиграл сегодня" - видна если не было срыва */}
         {!todaysCheckin.relapse && (
-          <button
-            onClick={() => {
-              triggerHaptic('heavy')
-              setPreviousStreak(streak?.current || 0)
-              setRelapse(true)
-              setStep('relapse_confirm')
-            }}
-            className="w-full p-4 rounded-xl border-2 border-rose-200 bg-rose-50 text-rose-700 font-medium hover:bg-rose-100 transition-colors flex items-center justify-center gap-2"
-          >
-            <AlertOctagon size={18} />
-            Проиграл сегодня
-          </button>
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+            <button
+              onClick={() => {
+                triggerHaptic('heavy')
+                setPreviousStreak(streak?.current || 0)
+                setRelapse(true)
+                setStep('relapse_confirm')
+              }}
+              className="w-full flex items-center gap-4 p-4 rounded-xl border-2 border-slate-200 hover:border-rose-300 hover:bg-rose-50/50 transition-all text-left"
+            >
+              <div className="w-6 h-6 rounded border-2 border-slate-300 bg-white shrink-0"></div>
+              <div>
+                <span className="font-bold text-slate-700 block">Был срыв сегодня</span>
+                <span className="text-xs text-slate-500">Мы не осуждаем. Это шаг к осознанию.</span>
+              </div>
+            </button>
+          </div>
         )}
 
         <Link to="/">
