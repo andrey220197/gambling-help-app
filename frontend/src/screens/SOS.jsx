@@ -2,21 +2,72 @@
  * Экран SOS — экстренная помощь.
  */
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '../components/Button'
 import { SOS_TECHNIQUES } from '../constants'
 import { triggerHaptic } from '../hooks/useTelegram'
-import { Phone, ArrowLeft, ChevronRight, Heart } from 'lucide-react'
+import { Phone, ArrowLeft, ChevronRight, Heart, Play, Pause, RotateCcw } from 'lucide-react'
 import * as api from '../api/client'
+
+// Дыхательные упражнения
+const BREATHING_PHASES = [
+  { name: 'Вдох', duration: 4, color: 'from-cyan-400 to-blue-500' },
+  { name: 'Задержка', duration: 4, color: 'from-blue-500 to-indigo-500' },
+  { name: 'Выдох', duration: 4, color: 'from-indigo-500 to-purple-500' },
+  { name: 'Задержка', duration: 4, color: 'from-purple-500 to-cyan-400' },
+]
 
 export function SOS() {
   const [expandedTechnique, setExpandedTechnique] = useState(null)
+
+  // Breathing timer state
+  const [breathingActive, setBreathingActive] = useState(false)
+  const [currentPhase, setCurrentPhase] = useState(0)
+  const [phaseTime, setPhaseTime] = useState(0)
+  const [totalCycles, setTotalCycles] = useState(0)
+  const intervalRef = useRef(null)
 
   // Логируем SOS событие
   useEffect(() => {
     api.logSosEvent('sos_opened').catch(() => {})
   }, [])
+
+  // Breathing timer logic
+  useEffect(() => {
+    if (breathingActive) {
+      intervalRef.current = setInterval(() => {
+        setPhaseTime(prev => {
+          const phase = BREATHING_PHASES[currentPhase]
+          if (prev >= phase.duration - 1) {
+            // Move to next phase
+            const nextPhase = (currentPhase + 1) % BREATHING_PHASES.length
+            setCurrentPhase(nextPhase)
+            if (nextPhase === 0) {
+              setTotalCycles(c => c + 1)
+              triggerHaptic('light')
+            }
+            return 0
+          }
+          return prev + 1
+        })
+      }, 1000)
+    }
+    return () => clearInterval(intervalRef.current)
+  }, [breathingActive, currentPhase])
+
+  const toggleBreathing = () => {
+    triggerHaptic('medium')
+    setBreathingActive(!breathingActive)
+  }
+
+  const resetBreathing = () => {
+    triggerHaptic('light')
+    setBreathingActive(false)
+    setCurrentPhase(0)
+    setPhaseTime(0)
+    setTotalCycles(0)
+  }
 
   const handleTechniqueClick = (id) => {
     triggerHaptic('medium')
@@ -59,6 +110,85 @@ export function SOS() {
           </div>
           <ChevronRight className="text-slate-300" />
         </button>
+      </div>
+
+      {/* Breathing Exercise */}
+      <div className="p-4">
+        <div className="bg-white rounded-2xl shadow-lg border border-slate-100 overflow-hidden">
+          <div className="p-5">
+            <h3 className="font-bold text-slate-800 mb-1">🌬️ Дыхание 4-4-4-4</h3>
+            <p className="text-slate-500 text-sm mb-4">Квадратное дыхание снижает тревогу за 2-3 минуты</p>
+
+            {/* Breathing Circle */}
+            <div className="flex flex-col items-center py-4">
+              <div className="relative">
+                {/* Background circle */}
+                <div className="w-32 h-32 rounded-full bg-slate-100"></div>
+
+                {/* Animated progress circle */}
+                <svg className="absolute inset-0 w-32 h-32 -rotate-90">
+                  <circle
+                    cx="64"
+                    cy="64"
+                    r="58"
+                    fill="none"
+                    stroke="url(#breathGradient)"
+                    strokeWidth="8"
+                    strokeLinecap="round"
+                    strokeDasharray={`${(phaseTime + 1) / BREATHING_PHASES[currentPhase].duration * 364} 364`}
+                    className="transition-all duration-1000 ease-linear"
+                  />
+                  <defs>
+                    <linearGradient id="breathGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor="#06b6d4" />
+                      <stop offset="100%" stopColor="#8b5cf6" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+
+                {/* Center content */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <div className="text-2xl font-bold text-slate-700">
+                    {BREATHING_PHASES[currentPhase].duration - phaseTime}
+                  </div>
+                  <div className="text-sm font-medium text-slate-500">
+                    {BREATHING_PHASES[currentPhase].name}
+                  </div>
+                </div>
+              </div>
+
+              {/* Cycle counter */}
+              {totalCycles > 0 && (
+                <div className="mt-3 text-sm text-slate-400">
+                  Циклов: <span className="font-bold text-slate-600">{totalCycles}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Controls */}
+            <div className="flex gap-3 mt-2">
+              <button
+                onClick={toggleBreathing}
+                className={`flex-1 py-3 px-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all ${
+                  breathingActive
+                    ? 'bg-slate-100 text-slate-700'
+                    : 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg'
+                }`}
+              >
+                {breathingActive ? <Pause size={20} /> : <Play size={20} />}
+                {breathingActive ? 'Пауза' : 'Начать'}
+              </button>
+              {(breathingActive || totalCycles > 0) && (
+                <button
+                  onClick={resetBreathing}
+                  className="py-3 px-4 rounded-xl bg-slate-100 text-slate-600 font-bold"
+                >
+                  <RotateCcw size={20} />
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Techniques */}

@@ -9,7 +9,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell
 } from 'recharts'
 import {
-  LogOut, Wallet, ChevronDown, ChevronUp, BarChart2
+  LogOut, Wallet, ChevronDown, ChevronUp, BarChart2, Calendar, Award
 } from 'lucide-react'
 import { TRACK_NAMES, TRACK_EMOJIS } from '../constants'
 import * as api from '../api/client'
@@ -18,6 +18,18 @@ const METRICS = [
   { key: 'urge', name: 'Тяга', color: '#f43f5e', bgColor: 'bg-rose-500', lightBg: 'bg-rose-50' },
   { key: 'stress', name: 'Стресс', color: '#f59e0b', bgColor: 'bg-amber-500', lightBg: 'bg-amber-50' },
   { key: 'mood', name: 'Настроение', color: '#10b981', bgColor: 'bg-emerald-500', lightBg: 'bg-emerald-50' },
+]
+
+const ACHIEVEMENTS = [
+  { days: 1, emoji: '🌱', name: 'Первый шаг', desc: 'Начало пути' },
+  { days: 3, emoji: '💪', name: '3 дня', desc: 'Набираешь силу' },
+  { days: 7, emoji: '🔥', name: 'Неделя', desc: 'Первая неделя!' },
+  { days: 14, emoji: '⭐', name: '2 недели', desc: 'Уже привычка' },
+  { days: 30, emoji: '🏆', name: 'Месяц', desc: 'Серьёзный результат' },
+  { days: 60, emoji: '💎', name: '2 месяца', desc: 'Впечатляет!' },
+  { days: 90, emoji: '👑', name: '3 месяца', desc: 'Мастер контроля' },
+  { days: 180, emoji: '🎯', name: 'Полгода', desc: 'Невероятно!' },
+  { days: 365, emoji: '🏅', name: 'Год', desc: 'Легенда!' },
 ]
 
 export function Profile() {
@@ -63,6 +75,31 @@ export function Profile() {
   const track = profile?.track || 'gambling'
 
   const currentMetric = METRICS[activeMetric]
+  const currentStreak = streak?.current || 0
+  const bestStreak = streak?.best || 0
+
+  // Календарь за последние 35 дней (5 недель)
+  const calendarData = (() => {
+    const result = []
+    const today = new Date()
+    for (let i = 34; i >= 0; i--) {
+      const date = new Date(today)
+      date.setDate(date.getDate() - i)
+      const dateStr = date.toISOString().split('T')[0]
+      const checkin = checkins.find(c => c.date && c.date.startsWith(dateStr))
+      result.push({
+        date: dateStr,
+        day: date.getDate(),
+        hasCheckin: !!checkin,
+        relapse: checkin?.relapse || false,
+      })
+    }
+    return result
+  })()
+
+  // Достижения
+  const unlockedAchievements = ACHIEVEMENTS.filter(a => bestStreak >= a.days)
+  const nextAchievement = ACHIEVEMENTS.find(a => bestStreak < a.days)
 
   const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length && payload[0].value !== null) {
@@ -103,13 +140,101 @@ export function Profile() {
         <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
           <div className="text-slate-400 text-xs mb-1 font-medium uppercase tracking-wide">Рекорд серии</div>
           <div className="text-3xl font-bold text-brand-600">
-            {streak?.best || 0} <span className="text-sm text-slate-400 font-normal">дн.</span>
+            {bestStreak} <span className="text-sm text-slate-400 font-normal">дн.</span>
           </div>
         </div>
         <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
           <div className="text-slate-400 text-xs mb-1 font-medium uppercase tracking-wide">Всего чек-инов</div>
           <div className="text-3xl font-bold text-slate-700">{checkins.length}</div>
         </div>
+      </div>
+
+      {/* Календарь прогресса */}
+      <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+        <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2 mb-4">
+          <Calendar size={16} className="text-slate-400"/>
+          Календарь (5 недель)
+        </h3>
+        <div className="grid grid-cols-7 gap-1.5">
+          {calendarData.map((day, idx) => (
+            <div
+              key={idx}
+              className={`aspect-square rounded-md flex items-center justify-center text-xs font-medium transition-all ${
+                day.relapse
+                  ? 'bg-rose-100 text-rose-600'
+                  : day.hasCheckin
+                    ? 'bg-emerald-100 text-emerald-700'
+                    : 'bg-slate-50 text-slate-300'
+              }`}
+              title={day.date}
+            >
+              {day.day}
+            </div>
+          ))}
+        </div>
+        <div className="flex items-center justify-center gap-4 mt-3 pt-3 border-t border-slate-100">
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded bg-emerald-100"></div>
+            <span className="text-xs text-slate-500">Чек-ин</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded bg-rose-100"></div>
+            <span className="text-xs text-slate-500">Срыв</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <div className="w-3 h-3 rounded bg-slate-50"></div>
+            <span className="text-xs text-slate-500">Нет данных</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Достижения */}
+      <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+        <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2 mb-4">
+          <Award size={16} className="text-slate-400"/>
+          Достижения
+        </h3>
+
+        {/* Следующее достижение */}
+        {nextAchievement && (
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-4 rounded-xl mb-4 border border-amber-100">
+            <div className="flex items-center gap-3">
+              <div className="text-3xl grayscale opacity-50">{nextAchievement.emoji}</div>
+              <div className="flex-1">
+                <div className="font-bold text-slate-700">{nextAchievement.name}</div>
+                <div className="text-xs text-slate-500">
+                  Ещё {nextAchievement.days - currentStreak} {nextAchievement.days - currentStreak === 1 ? 'день' : 'дней'}
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-xs text-amber-600 font-medium">Прогресс</div>
+                <div className="font-bold text-amber-700">{Math.round((currentStreak / nextAchievement.days) * 100)}%</div>
+              </div>
+            </div>
+            <div className="mt-2 h-2 bg-amber-100 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-amber-400 to-orange-400 rounded-full transition-all"
+                style={{ width: `${Math.min(100, (currentStreak / nextAchievement.days) * 100)}%` }}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Полученные достижения */}
+        {unlockedAchievements.length > 0 ? (
+          <div className="grid grid-cols-3 gap-3">
+            {unlockedAchievements.map((achievement) => (
+              <div key={achievement.days} className="text-center p-3 bg-slate-50 rounded-xl">
+                <div className="text-2xl mb-1">{achievement.emoji}</div>
+                <div className="text-xs font-bold text-slate-700">{achievement.name}</div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-4 text-slate-400 text-sm">
+            Пока нет достижений. Продолжай!
+          </div>
+        )}
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
