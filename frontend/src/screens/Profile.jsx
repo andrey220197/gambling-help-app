@@ -9,7 +9,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell
 } from 'recharts'
 import {
-  LogOut, Wallet, ChevronDown, ChevronUp, BarChart2, Calendar, Award
+  LogOut, Wallet, ChevronDown, ChevronUp, BarChart2, Calendar, Award, Bell
 } from 'lucide-react'
 import { TRACK_NAMES, TRACK_EMOJIS } from '../constants'
 import * as api from '../api/client'
@@ -32,13 +32,27 @@ const ACHIEVEMENTS = [
   { days: 365, emoji: '🏅', name: 'Год', desc: 'Легенда!' },
 ]
 
+const REMINDER_HOURS = [
+  { value: 8, label: '08:00' },
+  { value: 10, label: '10:00' },
+  { value: 12, label: '12:00' },
+  { value: 14, label: '14:00' },
+  { value: 16, label: '16:00' },
+  { value: 18, label: '18:00' },
+  { value: 20, label: '20:00' },
+  { value: 21, label: '21:00' },
+  { value: 22, label: '22:00' },
+]
+
 export function Profile() {
   const {
     profile, checkins, resetProgress, streak,
-    moneySettings, recoveryCode
+    moneySettings, recoveryCode, reminderSettings,
+    updateReminderSettings
   } = useStore()
 
   const [showMoneySettings, setShowMoneySettings] = useState(false)
+  const [showReminderSettings, setShowReminderSettings] = useState(false)
   const [moneyStats, setMoneyStats] = useState(null)
   const [activeMetric, setActiveMetric] = useState(0) // 0=urge, 1=stress, 2=mood
 
@@ -47,6 +61,22 @@ export function Profile() {
       .then(stats => setMoneyStats(stats))
       .catch(() => {})
   }, [])
+
+  const handleReminderToggle = async () => {
+    try {
+      await updateReminderSettings(!reminderSettings.enabled, reminderSettings.hour)
+    } catch (e) {
+      console.error('Failed to update reminder:', e)
+    }
+  }
+
+  const handleReminderHourChange = async (hour) => {
+    try {
+      await updateReminderSettings(reminderSettings.enabled, hour)
+    } catch (e) {
+      console.error('Failed to update reminder hour:', e)
+    }
+  }
 
   const chartData = (() => {
     const result = []
@@ -261,6 +291,74 @@ export function Profile() {
               <div>
                 <div className="text-xs text-slate-400 uppercase font-medium mb-1">Потери</div>
                 <div className="text-lg font-bold text-rose-500">-{formatMoney(lostTotal)} ₽</div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Уведомления */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <button
+          onClick={() => setShowReminderSettings(!showReminderSettings)}
+          className="w-full p-5 flex items-center justify-between hover:bg-slate-50 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <Bell className={reminderSettings?.enabled ? "text-blue-500" : "text-slate-400"} size={20} />
+            <span className="font-bold text-slate-800">Напоминания</span>
+          </div>
+          {showReminderSettings ? (
+            <ChevronUp size={20} className="text-slate-400"/>
+          ) : (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-slate-500">
+                {reminderSettings?.enabled ? `${reminderSettings.hour}:00` : 'Выкл'}
+              </span>
+              <ChevronDown size={20} className="text-slate-400"/>
+            </div>
+          )}
+        </button>
+        {showReminderSettings && (
+          <div className="p-5 pt-0 border-t border-slate-100 animate-slide-down">
+            {/* Toggle */}
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <div className="font-medium text-slate-700">Ежедневное напоминание</div>
+                <div className="text-xs text-slate-500">Напомним сделать чек-ин</div>
+              </div>
+              <button
+                onClick={handleReminderToggle}
+                className={`w-12 h-7 rounded-full transition-colors relative ${
+                  reminderSettings?.enabled ? 'bg-blue-500' : 'bg-slate-200'
+                }`}
+              >
+                <div
+                  className={`w-5 h-5 bg-white rounded-full shadow absolute top-1 transition-transform ${
+                    reminderSettings?.enabled ? 'translate-x-6' : 'translate-x-1'
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* Time selector */}
+            {reminderSettings?.enabled && (
+              <div>
+                <div className="text-xs text-slate-500 mb-2">Время напоминания</div>
+                <div className="flex flex-wrap gap-2">
+                  {REMINDER_HOURS.map(({ value, label }) => (
+                    <button
+                      key={value}
+                      onClick={() => handleReminderHourChange(value)}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                        reminderSettings.hour === value
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>

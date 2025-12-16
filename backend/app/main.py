@@ -4,6 +4,7 @@ FastAPI приложение — Точка опоры.
 """
 
 import os
+import asyncio
 import httpx
 WEBAPP_URL = "https://gambling-help-andrey220197.amvera.io"
 from contextlib import asynccontextmanager
@@ -14,14 +15,26 @@ from fastapi.responses import FileResponse
 
 from app.config import settings
 from app.api import auth, checkins, streaks, articles, sos, tests, diary, money
-from app.db.database import init_db
+from app.db.database import init_db, DATABASE_PATH
+from app.services.reminder_scheduler import run_scheduler
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Инициализация при запуске."""
     await init_db()
+
+    # Запускаем планировщик напоминаний в фоне
+    scheduler_task = asyncio.create_task(run_scheduler(DATABASE_PATH))
+
     yield
+
+    # Останавливаем планировщик при завершении
+    scheduler_task.cancel()
+    try:
+        await scheduler_task
+    except asyncio.CancelledError:
+        pass
 
 
 app = FastAPI(

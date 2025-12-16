@@ -70,32 +70,58 @@ async def get_me(
         (user_id,)
     )
     profile_row = await cursor.fetchone()
-    
-    # Recovery code
+
+    # User data с настройками уведомлений
     cursor = await db.execute(
-        "SELECT recovery_code FROM users WHERE id = ?",
+        "SELECT recovery_code, reminder_enabled, reminder_hour FROM users WHERE id = ?",
         (user_id,)
     )
     user_row = await cursor.fetchone()
-    
+
     # Streak
     cursor = await db.execute(
         "SELECT current_streak, best_streak, last_checkin_date FROM streaks WHERE user_id = ?",
         (user_id,)
     )
     streak_row = await cursor.fetchone()
-    
+
     return {
         "userId": str(user_id),
         "track": profile_row["track"] if profile_row else None,
         "onboardingCompleted": bool(profile_row["onboarding_completed"]) if profile_row else False,
         "recoveryCode": user_row["recovery_code"] if user_row else None,
+        "reminderEnabled": bool(user_row["reminder_enabled"]) if user_row else True,
+        "reminderHour": user_row["reminder_hour"] if user_row else 20,
         "streak": {
             "current": streak_row["current_streak"] if streak_row else 0,
             "best": streak_row["best_streak"] if streak_row else 0,
             "lastCheckinDate": streak_row["last_checkin_date"] if streak_row else None,
         } if streak_row else {"current": 0, "best": 0, "lastCheckinDate": None},
     }
+
+
+class ReminderSettingsRequest(BaseModel):
+    enabled: bool
+    hour: int  # 0-23
+
+
+@router.put("/reminders")
+async def update_reminder_settings(
+    request: ReminderSettingsRequest,
+    user_id: int = Depends(get_current_user),
+    db: aiosqlite.Connection = Depends(get_db)
+):
+    """Обновить настройки уведомлений."""
+    if not 0 <= request.hour <= 23:
+        raise HTTPException(status_code=400, detail="Hour must be 0-23")
+
+    await db.execute(
+        "UPDATE users SET reminder_enabled = ?, reminder_hour = ? WHERE id = ?",
+        (request.enabled, request.hour, user_id)
+    )
+    await db.commit()
+
+    return {"ok": True, "enabled": request.enabled, "hour": request.hour}
 
 
 @router.post("/verify", response_model=AuthResponse)
@@ -119,6 +145,12 @@ async def verify_auth(request: AuthRequest, db: aiosqlite.Connection = Depends(g
 
     if row:
         user_id = row["id"]
+        # Обновляем telegram_id (может измениться при восстановлении)
+        await db.execute(
+            "UPDATE users SET telegram_id = ? WHERE id = ?",
+            (telegram_id, user_id)
+        )
+        await db.commit()
         token = create_jwt_token(user_id)
         return AuthResponse(
             token=token,
@@ -129,8 +161,8 @@ async def verify_auth(request: AuthRequest, db: aiosqlite.Connection = Depends(g
     # Новый пользователь
     recovery_code = generate_recovery_code()
     cursor = await db.execute(
-        "INSERT INTO users (anon_hash, recovery_code) VALUES (?, ?)",
-        (anon_hash, recovery_code)
+        "INSERT INTO users (anon_hash, recovery_code, telegram_id) VALUES (?, ?, ?)",
+        (anon_hash, recovery_code, telegram_id)
     )
     await db.commit()
     user_id = cursor.lastrowid

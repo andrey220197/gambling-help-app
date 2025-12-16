@@ -38,6 +38,10 @@ export const useStore = create(
       },
       moneyHistory: [],
       thoughtEntries: [],
+      reminderSettings: {
+        enabled: true,
+        hour: 20,
+      },
       
       // =============================================
       // TELEGRAM
@@ -115,6 +119,10 @@ export const useStore = create(
             recoveryCode: me.recoveryCode,
             streak: me.streak || { current: 0, best: 0, lastCheckinDate: null },
             isOnboarding: !me.onboardingCompleted,
+            reminderSettings: {
+              enabled: me.reminderEnabled ?? true,
+              hour: me.reminderHour ?? 20,
+            },
           })
           
           // Загружаем настройки финансов
@@ -256,7 +264,24 @@ export const useStore = create(
           throw error
         }
       },
-      
+
+      // =============================================
+      // REMINDER ACTIONS
+      // =============================================
+
+      /**
+       * Обновление настроек уведомлений.
+       */
+      updateReminderSettings: async (enabled, hour) => {
+        try {
+          await api.updateReminderSettings(enabled, hour)
+          set({ reminderSettings: { enabled, hour } })
+        } catch (error) {
+          console.error('Failed to update reminder settings:', error)
+          throw error
+        }
+      },
+
       // =============================================
       // DIARY ACTIONS
       // =============================================
@@ -332,6 +357,7 @@ export const useStore = create(
         isOnboarding: state.isOnboarding,
         streak: state.streak,
         moneySettings: state.moneySettings,
+        reminderSettings: state.reminderSettings,
       }),
     }
   )

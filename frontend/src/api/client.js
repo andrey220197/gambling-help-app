@@ -231,3 +231,14 @@ export async function addMoneyEntry(data) {
 export async function getMoneyStats() {
   return request('/money/stats')
 }
+
+// =============================================
+// REMINDERS API (Уведомления)
+// =============================================
+
+export async function updateReminderSettings(enabled, hour) {
+  return request('/auth/reminders', {
+    method: 'PUT',
+    body: { enabled, hour },
+  })
+}

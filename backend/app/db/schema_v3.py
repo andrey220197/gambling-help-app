@@ -11,6 +11,10 @@ CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     anon_hash TEXT UNIQUE NOT NULL,
     recovery_code TEXT UNIQUE NOT NULL,
+    telegram_id INTEGER,                    -- для отправки уведомлений
+    reminder_enabled BOOLEAN DEFAULT TRUE,
+    reminder_hour INTEGER DEFAULT 20,       -- час напоминания (0-23)
+    last_reminder_date DATE,                -- дата последнего напоминания
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -304,6 +308,28 @@ async def migrate_to_v3(db):
     
     await db.commit()
     print("✅ Migrated to v3")
+
+
+async def migrate_add_reminders(db):
+    """Миграция: добавляет поля для уведомлений."""
+
+    # Добавляем колонки в users если их нет
+    columns_to_add = [
+        ("telegram_id", "INTEGER"),
+        ("reminder_enabled", "BOOLEAN DEFAULT TRUE"),
+        ("reminder_hour", "INTEGER DEFAULT 20"),
+        ("last_reminder_date", "DATE"),
+    ]
+
+    for col_name, col_type in columns_to_add:
+        try:
+            await db.execute(f"ALTER TABLE users ADD COLUMN {col_name} {col_type}")
+            print(f"✅ Added column {col_name}")
+        except:
+            pass  # Колонка уже существует
+
+    await db.commit()
+    print("✅ Reminder fields migration complete")
 
 
 if __name__ == "__main__":

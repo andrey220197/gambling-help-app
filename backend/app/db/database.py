@@ -1,6 +1,6 @@
 import aiosqlite
 from app.config import settings
-from app.db.schema_v3 import SCHEMA_V3
+from app.db.schema_v3 import SCHEMA_V3, migrate_add_reminders
 
 DATABASE_PATH = settings.DATABASE_URL.replace("sqlite:///", "")
 
@@ -21,6 +21,9 @@ async def init_db():
         await db.executescript(SCHEMA_V3)
         await db.commit()
         print(f"[OK] Database initialized at {DATABASE_PATH}")
+
+        # Миграция: добавляем поля для уведомлений
+        await migrate_add_reminders(db)
 
         # Seed articles if empty
         cursor = await db.execute("SELECT COUNT(*) FROM articles")
