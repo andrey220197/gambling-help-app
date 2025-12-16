@@ -19,6 +19,7 @@ class ArticleShort(BaseModel):
     id: int
     title: str
     category: str
+    content: str  # Полный контент для превью
 
 
 @router.get("", response_model=list[ArticleShort])
@@ -26,24 +27,25 @@ async def get_articles(
     category: Optional[str] = None,
     db: aiosqlite.Connection = Depends(get_db)
 ):
-    """Получает список всех статей (краткая информация)."""
+    """Получает список всех статей."""
     if category:
         cursor = await db.execute(
-            "SELECT id, title, category FROM articles WHERE category = ? ORDER BY order_index",
+            "SELECT id, title, category, content FROM articles WHERE category = ? ORDER BY order_index",
             (category,)
         )
     else:
         cursor = await db.execute(
-            "SELECT id, title, category FROM articles ORDER BY order_index"
+            "SELECT id, title, category, content FROM articles ORDER BY order_index"
         )
-    
+
     rows = await cursor.fetchall()
-    
+
     return [
         ArticleShort(
             id=row["id"],
             title=row["title"],
             category=row["category"],
+            content=row["content"],
         )
         for row in rows
     ]
