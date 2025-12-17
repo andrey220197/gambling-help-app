@@ -9,8 +9,10 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell
 } from 'recharts'
 import {
-  LogOut, Wallet, ChevronDown, ChevronUp, BarChart2, Calendar, Award, Bell
+  LogOut, Wallet, ChevronDown, ChevronUp, BarChart2, Calendar, Award, Bell,
+  Activity, ChevronRight
 } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { TRACK_NAMES, TRACK_EMOJIS } from '../constants'
 import * as api from '../api/client'
 
@@ -55,10 +57,15 @@ export function Profile() {
   const [showReminderSettings, setShowReminderSettings] = useState(false)
   const [moneyStats, setMoneyStats] = useState(null)
   const [activeMetric, setActiveMetric] = useState(0) // 0=urge, 1=stress, 2=mood
+  const [analytics, setAnalytics] = useState(null)
 
   useEffect(() => {
     api.getMoneyStats()
       .then(stats => setMoneyStats(stats))
+      .catch(() => {})
+
+    api.getTestAnalytics()
+      .then(data => setAnalytics(data))
       .catch(() => {})
   }, [])
 
@@ -303,6 +310,105 @@ export function Profile() {
           </div>
         )}
       </div>
+
+      {/* Профиль риска */}
+      {analytics && (
+        <Link to="/analytics" className="block">
+          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-slate-800 text-sm flex items-center gap-2">
+                <Activity size={16} className="text-brand-500"/>
+                Профиль риска
+              </h3>
+              <div className="flex items-center gap-1 text-brand-600 text-xs font-medium">
+                <span>Подробнее</span>
+                <ChevronRight size={14} />
+              </div>
+            </div>
+
+            {/* Уровень риска */}
+            <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold mb-4 ${
+              analytics.risk_level === 'high' ? 'bg-rose-100 text-rose-700' :
+              analytics.risk_level === 'medium' ? 'bg-amber-100 text-amber-700' :
+              analytics.risk_level === 'low' ? 'bg-emerald-100 text-emerald-700' :
+              'bg-slate-100 text-slate-600'
+            }`}>
+              <span className={`w-2 h-2 rounded-full ${
+                analytics.risk_level === 'high' ? 'bg-rose-500' :
+                analytics.risk_level === 'medium' ? 'bg-amber-500' :
+                analytics.risk_level === 'low' ? 'bg-emerald-500' :
+                'bg-slate-400'
+              }`}></span>
+              {analytics.risk_level === 'high' ? 'Высокий риск' :
+               analytics.risk_level === 'medium' ? 'Средний риск' :
+               analytics.risk_level === 'low' ? 'Низкий риск' : 'Не определён'}
+            </div>
+
+            {/* Метрики */}
+            <div className="space-y-3">
+              {analytics.metrics.impulse?.value !== null && (
+                <div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="text-slate-600">{analytics.metrics.impulse.label}</span>
+                    <span className="font-bold text-slate-700">{analytics.metrics.impulse.value}/10</span>
+                  </div>
+                  <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all ${
+                        analytics.metrics.impulse.value >= 7 ? 'bg-rose-500' :
+                        analytics.metrics.impulse.value >= 4 ? 'bg-amber-500' : 'bg-emerald-500'
+                      }`}
+                      style={{ width: `${(analytics.metrics.impulse.value / 10) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {analytics.metrics.emotional?.value !== null && (
+                <div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="text-slate-600">{analytics.metrics.emotional.label}</span>
+                    <span className="font-bold text-slate-700">{analytics.metrics.emotional.value}/10</span>
+                  </div>
+                  <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all ${
+                        analytics.metrics.emotional.value >= 7 ? 'bg-rose-500' :
+                        analytics.metrics.emotional.value >= 4 ? 'bg-amber-500' : 'bg-emerald-500'
+                      }`}
+                      style={{ width: `${(analytics.metrics.emotional.value / 10) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {analytics.metrics.urge?.value !== null && (
+                <div>
+                  <div className="flex justify-between text-xs mb-1">
+                    <span className="text-slate-600">{analytics.metrics.urge.label} (14 дн.)</span>
+                    <span className="font-bold text-slate-700">{analytics.metrics.urge.value}/10</span>
+                  </div>
+                  <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all ${
+                        analytics.metrics.urge.value >= 7 ? 'bg-rose-500' :
+                        analytics.metrics.urge.value >= 4 ? 'bg-amber-500' : 'bg-emerald-500'
+                      }`}
+                      style={{ width: `${(analytics.metrics.urge.value / 10) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {analytics.tests_completed_14d > 0 && (
+              <div className="mt-3 pt-3 border-t border-slate-100 text-xs text-slate-400">
+                Пройдено тестов за 14 дней: {analytics.tests_completed_14d}
+              </div>
+            )}
+          </div>
+        </Link>
+      )}
 
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         <button onClick={() => setShowMoneySettings(!showMoneySettings)} className="w-full p-5 flex items-center justify-between hover:bg-slate-50 transition-colors">

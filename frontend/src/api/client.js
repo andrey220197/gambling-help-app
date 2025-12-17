@@ -146,6 +146,14 @@ export async function getTestStats() {
   return request('/tests/stats')
 }
 
+export async function getTestAnalytics() {
+  return request('/tests/analytics')
+}
+
+export async function getTestHistory(limit = 30) {
+  return request(`/tests/history?limit=${limit}`)
+}
+
 // =============================================
 // ARTICLES API
 // =============================================

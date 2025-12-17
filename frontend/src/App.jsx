@@ -17,6 +17,7 @@ import { SOS } from './screens/SOS'
 import { Articles } from './screens/Articles'
 import { ThoughtDiary } from './screens/ThoughtDiary'
 import { ThoughtEntry } from './screens/ThoughtEntry'
+import { Analytics } from './screens/Analytics'
 
 // Protected Route
 function ProtectedRoute({ children }) {
@@ -171,6 +172,7 @@ function App() {
           <Route path="/articles" element={<ProtectedRoute><Articles /></ProtectedRoute>} />
           <Route path="/diary" element={<ProtectedRoute><ThoughtDiary /></ProtectedRoute>} />
           <Route path="/diary/new" element={<ProtectedRoute><ThoughtEntry /></ProtectedRoute>} />
+          <Route path="/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Layout>
