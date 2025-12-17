@@ -1,6 +1,6 @@
 /**
  * Экран создания записи в дневнике мыслей.
- * 4 шага: Ситуация -> Мысль -> Эмоции -> Альтернатива
+ * 4 шага по схеме СМЭР: Ситуация -> Мысль -> Эмоции -> Реакции
  */
 
 import React, { useState } from 'react'
@@ -8,9 +8,9 @@ import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore'
 import { Button } from '../components/Button'
 import { triggerHaptic } from '../hooks/useTelegram'
-import { 
-  EMOTIONS, COGNITIVE_DISTORTIONS, 
-  COMMON_SITUATIONS, COMMON_THOUGHTS 
+import {
+  EMOTIONS,
+  COMMON_SITUATIONS, COMMON_THOUGHTS, COMMON_REACTIONS
 } from '../constants'
 import { ArrowLeft } from 'lucide-react'
 
@@ -20,13 +20,12 @@ export function ThoughtEntry() {
   const [step, setStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
   
-  // Form State
+  // Form State (СМЭР: Ситуация, Мысль, Эмоции, Реакции)
   const [situation, setSituation] = useState('')
   const [thought, setThought] = useState('')
   const [selectedEmotions, setSelectedEmotions] = useState([])
   const [intensity, setIntensity] = useState(5)
-  const [selectedDistortion, setSelectedDistortion] = useState(null)
-  const [alternative, setAlternative] = useState('')
+  const [reaction, setReaction] = useState('')
 
   const progress = (step / 4) * 100
 
@@ -55,8 +54,7 @@ export function ThoughtEntry() {
         thought,
         emotions: selectedEmotions,
         emotionIntensity: intensity,
-        distortion: selectedDistortion,
-        alternativeThought: alternative
+        reaction
       })
       triggerHaptic('success')
       navigate('/diary')
@@ -107,7 +105,7 @@ export function ThoughtEntry() {
           <div className="flex justify-between text-xs font-bold text-slate-400 uppercase mb-1">
             <span>Шаг {step} из 4</span>
             <span>
-              {step === 1 ? 'Ситуация' : step === 2 ? 'Мысль' : step === 3 ? 'Эмоции' : 'Альтернатива'}
+              {step === 1 ? 'Ситуация' : step === 2 ? 'Мысль' : step === 3 ? 'Эмоции' : 'Реакции'}
             </span>
           </div>
           <div className="h-1 bg-slate-100 rounded-full overflow-hidden">
@@ -232,57 +230,46 @@ export function ThoughtEntry() {
           </div>
         )}
 
-        {/* Step 4: Analysis/Alternative */}
+        {/* Step 4: Reactions (Р в схеме СМЭР) */}
         {step === 4 && (
-          <div className="animate-fade-in space-y-6">
-            <div>
-              <h2 className="text-2xl font-bold text-slate-800 mb-2">Разбор мысли</h2>
-              <p className="text-slate-500 text-sm">
-                Ваша мысль: <span className="text-slate-800 italic">"{thought}"</span>
-              </p>
-            </div>
+          <div className="animate-fade-in space-y-4">
+            <h2 className="text-2xl font-bold text-slate-800">Что вы сделали?</h2>
+            <p className="text-slate-500">
+              Опишите вашу реакцию: какие действия вы предприняли или хотели предпринять?
+            </p>
 
-            <div>
-              <h3 className="text-sm font-bold text-slate-400 uppercase mb-3">
-                Это похоже на искажение?
-              </h3>
-              <div className="space-y-3">
-                {COGNITIVE_DISTORTIONS.map(dist => (
-                  <button
-                    key={dist.id}
-                    onClick={() => {
-                      triggerHaptic('selection')
-                      setSelectedDistortion(selectedDistortion === dist.id ? null : dist.id)
-                    }}
-                    className={`w-full text-left p-4 rounded-xl border transition-all ${
-                      selectedDistortion === dist.id
-                        ? 'border-rose-500 bg-rose-50 ring-1 ring-rose-500'
-                        : 'border-slate-200 hover:bg-slate-50'
-                    }`}
-                  >
-                    <div className="font-bold text-slate-800 mb-1">{dist.name}</div>
-                    <div className="text-xs text-slate-500">{dist.description}</div>
-                    {selectedDistortion === dist.id && (
-                      <div className="mt-3 text-xs bg-white p-2 rounded-lg border border-rose-100 text-rose-700">
-                        💡 {dist.alternative}
-                      </div>
-                    )}
-                  </button>
-                ))}
+            {/* Краткое резюме предыдущих шагов */}
+            <div className="bg-slate-50 p-4 rounded-xl space-y-2 text-sm">
+              <div className="text-slate-500">
+                <span className="font-bold text-slate-700">С:</span> {situation.substring(0, 40)}{situation.length > 40 ? '...' : ''}
+              </div>
+              <div className="text-slate-500">
+                <span className="font-bold text-slate-700">М:</span> {thought.substring(0, 40)}{thought.length > 40 ? '...' : ''}
+              </div>
+              <div className="text-slate-500">
+                <span className="font-bold text-slate-700">Э:</span> {selectedEmotions.join(', ')} ({intensity}/10)
               </div>
             </div>
 
-            <div className="pt-4">
-              <h3 className="text-sm font-bold text-slate-400 uppercase mb-3">
-                Альтернативная мысль
-              </h3>
-              <textarea 
-                value={alternative}
-                onChange={e => setAlternative(e.target.value)}
-                className="w-full h-32 bg-emerald-50 rounded-xl p-4 text-slate-800 border-none focus:ring-2 focus:ring-emerald-500 resize-none placeholder:text-slate-400"
-                placeholder="Как можно посмотреть на это иначе? Реалистичный взгляд."
-              />
+            <div className="flex flex-wrap gap-2 mb-2">
+              {COMMON_REACTIONS.map(r => (
+                <button
+                  key={r}
+                  onClick={() => addChip(r, setReaction)}
+                  className="bg-slate-100 text-slate-600 px-3 py-1.5 rounded-full text-xs font-bold hover:bg-slate-200 transition-colors"
+                >
+                  + {r}
+                </button>
+              ))}
             </div>
+
+            <textarea
+              autoFocus
+              value={reaction}
+              onChange={e => setReaction(e.target.value)}
+              className="w-full h-32 bg-slate-50 rounded-xl p-4 text-slate-800 border-none focus:ring-2 focus:ring-indigo-500 resize-none placeholder:text-slate-400"
+              placeholder="Например: Открыл приложение, но потом закрыл и позвонил другу..."
+            />
           </div>
         )}
       </div>

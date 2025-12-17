@@ -1,13 +1,13 @@
 /**
- * Экран дневника мыслей — список записей.
+ * Экран дневника мыслей — список записей (схема СМЭР).
  */
 
 import React, { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useStore } from '../store/useStore'
 import { Button } from '../components/Button'
-import { EMOTIONS, COGNITIVE_DISTORTIONS } from '../constants'
-import { ArrowLeft, Plus, Calendar, Smile } from 'lucide-react'
+import { EMOTIONS } from '../constants'
+import { ArrowLeft, Plus, Calendar, Zap } from 'lucide-react'
 
 export function ThoughtDiary() {
   const { thoughtEntries, loadThoughtEntries } = useStore()
@@ -18,7 +18,6 @@ export function ThoughtDiary() {
   }, [loadThoughtEntries])
 
   const getEmotionDetails = (id) => EMOTIONS.find(e => e.id === id)
-  const getDistortionName = (id) => COGNITIVE_DISTORTIONS.find(d => d.id === id)?.name
 
   const formatDate = (iso) => {
     const d = new Date(iso)
@@ -70,55 +69,63 @@ export function ThoughtDiary() {
               className="bg-white rounded-2xl p-5 border border-slate-200 shadow-sm space-y-3 animate-slide-up"
               style={{ animationDelay: `${index * 50}ms` }}
             >
-              {/* Header */}
+              {/* Header - дата */}
               <div className="flex justify-between items-start">
                 <span className="text-xs font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded-md">
                   {formatDate(entry.createdAt)}
                 </span>
-                {entry.distortion && (
-                  <span className="text-[10px] uppercase font-bold text-rose-600 bg-rose-50 px-2 py-1 rounded-md border border-rose-100">
-                    {getDistortionName(entry.distortion)}
-                  </span>
-                )}
               </div>
 
-              {/* Emotions */}
-              <div>
-                <div className="flex gap-2 mb-2 flex-wrap">
-                  {entry.emotions?.map(eId => {
-                    const e = getEmotionDetails(eId)
-                    if (!e) return null
-                    return (
-                      <span 
-                        key={eId} 
-                        className="flex items-center gap-1 text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded-full border border-indigo-100"
-                      >
-                        <span>{e.emoji}</span> {e.label}
-                      </span>
-                    )
-                  })}
-                  <span className="text-xs text-slate-400 py-1">
-                    Интенсивность: {entry.emotionIntensity}/10
-                  </span>
+              {/* СМЭР структура */}
+              <div className="space-y-3">
+                {/* С: Ситуация */}
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400">С: Ситуация</span>
+                  <p className="text-sm text-slate-600">{entry.situation}</p>
                 </div>
-                
-                {/* Thought */}
-                <h3 className="text-slate-800 font-medium italic border-l-2 border-indigo-500 pl-3 py-1 mb-3">
-                  "{entry.thought}"
-                </h3>
-              </div>
-              
-              {/* Alternative Thought */}
-              {entry.alternativeThought && (
-                <div className="bg-emerald-50 p-3 rounded-xl border border-emerald-100">
-                  <h4 className="text-xs font-bold text-emerald-700 uppercase mb-1 flex items-center gap-1">
-                    <Smile size={12} /> Альтернатива
-                  </h4>
-                  <p className="text-sm text-emerald-800 leading-relaxed">
-                    {entry.alternativeThought}
+
+                {/* М: Мысль */}
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400">М: Мысль</span>
+                  <p className="text-slate-800 font-medium italic border-l-2 border-indigo-500 pl-3 py-1">
+                    "{entry.thought}"
                   </p>
                 </div>
-              )}
+
+                {/* Э: Эмоции */}
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-slate-400">Э: Эмоции</span>
+                  <div className="flex gap-2 mt-1 flex-wrap">
+                    {entry.emotions?.map(eId => {
+                      const e = getEmotionDetails(eId)
+                      if (!e) return null
+                      return (
+                        <span
+                          key={eId}
+                          className="flex items-center gap-1 text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded-full border border-indigo-100"
+                        >
+                          <span>{e.emoji}</span> {e.label}
+                        </span>
+                      )
+                    })}
+                    <span className="text-xs text-slate-400 py-1">
+                      ({entry.emotionIntensity}/10)
+                    </span>
+                  </div>
+                </div>
+
+                {/* Р: Реакции */}
+                {entry.reaction && (
+                  <div className="bg-amber-50 p-3 rounded-xl border border-amber-100">
+                    <h4 className="text-xs font-bold text-amber-700 uppercase mb-1 flex items-center gap-1">
+                      <Zap size={12} /> Р: Реакции
+                    </h4>
+                    <p className="text-sm text-amber-800 leading-relaxed">
+                      {entry.reaction}
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           ))
         )}

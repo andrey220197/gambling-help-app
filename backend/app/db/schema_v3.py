@@ -84,14 +84,13 @@ CREATE TABLE IF NOT EXISTS money_entries (
 CREATE TABLE IF NOT EXISTS thought_entries (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
-    situation TEXT NOT NULL,           -- описание ситуации
-    thought TEXT NOT NULL,             -- автоматическая мысль
-    emotions_json TEXT,                -- ["excitement", "anxiety"]
-    emotion_intensity INTEGER,         -- 1-10
-    distortion TEXT,                   -- cognitive distortion ID
-    alternative_thought TEXT,          -- альтернативная мысль
+    situation TEXT NOT NULL,           -- С: ситуация
+    thought TEXT NOT NULL,             -- М: мысль
+    emotions_json TEXT,                -- Э: эмоции ["excitement", "anxiety"]
+    emotion_intensity INTEGER,         -- интенсивность 1-10
+    reaction TEXT,                     -- Р: реакции (что сделал)
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    
+
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
@@ -333,6 +332,13 @@ async def migrate_add_reminders(db):
     try:
         await db.execute("ALTER TABLE tests ADD COLUMN min_risk_level TEXT")
         print("[OK] Added column tests.min_risk_level")
+    except:
+        pass  # Колонка уже существует
+
+    # Добавляем reaction в thought_entries (схема СМЭР)
+    try:
+        await db.execute("ALTER TABLE thought_entries ADD COLUMN reaction TEXT")
+        print("[OK] Added column thought_entries.reaction")
     except:
         pass  # Колонка уже существует
 

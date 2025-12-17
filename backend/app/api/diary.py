@@ -18,8 +18,7 @@ class ThoughtEntryCreate(BaseModel):
     thought: str
     emotions: List[str]
     emotionIntensity: int
-    distortion: Optional[str] = None
-    alternativeThought: Optional[str] = None
+    reaction: Optional[str] = None  # Реакции (Р в схеме СМЭР)
 
 
 class ThoughtEntryResponse(BaseModel):
@@ -29,8 +28,7 @@ class ThoughtEntryResponse(BaseModel):
     thought: str
     emotions: List[str]
     emotionIntensity: int
-    distortion: Optional[str]
-    alternativeThought: Optional[str]
+    reaction: Optional[str]
 
 
 @router.get("")
@@ -39,10 +37,10 @@ async def get_thought_entries(
     user_id: int = Depends(get_current_user),
     db=Depends(get_db)
 ):
-    """Получить записи дневника."""
+    """Получить записи дневника (схема СМЭР)."""
     async with db.execute(
-        """SELECT id, situation, thought, emotions_json, emotion_intensity, 
-                  distortion, alternative_thought, created_at
+        """SELECT id, situation, thought, emotions_json, emotion_intensity,
+                  reaction, created_at
            FROM thought_entries
            WHERE user_id = ?
            ORDER BY created_at DESC
@@ -50,7 +48,7 @@ async def get_thought_entries(
         (user_id, limit)
     ) as cursor:
         rows = await cursor.fetchall()
-    
+
     entries = []
     for row in rows:
         emotions = []
@@ -59,18 +57,17 @@ async def get_thought_entries(
                 emotions = json.loads(row[3])
             except:
                 pass
-        
+
         entries.append({
             "id": str(row[0]),
             "situation": row[1],
             "thought": row[2],
             "emotions": emotions,
             "emotionIntensity": row[4] or 5,
-            "distortion": row[5],
-            "alternativeThought": row[6],
-            "createdAt": row[7],
+            "reaction": row[5],
+            "createdAt": row[6],
         })
-    
+
     return entries
 
 
@@ -80,36 +77,34 @@ async def create_thought_entry(
     user_id: int = Depends(get_current_user),
     db=Depends(get_db)
 ):
-    """Создать запись в дневнике."""
+    """Создать запись в дневнике (схема СМЭР)."""
     emotions_json = json.dumps(entry.emotions)
-    
+
     cursor = await db.execute(
-        """INSERT INTO thought_entries 
-           (user_id, situation, thought, emotions_json, emotion_intensity, 
-            distortion, alternative_thought)
-           VALUES (?, ?, ?, ?, ?, ?, ?)""",
+        """INSERT INTO thought_entries
+           (user_id, situation, thought, emotions_json, emotion_intensity, reaction)
+           VALUES (?, ?, ?, ?, ?, ?)""",
         (user_id, entry.situation, entry.thought, emotions_json,
-         entry.emotionIntensity, entry.distortion, entry.alternativeThought)
+         entry.emotionIntensity, entry.reaction)
     )
     await db.commit()
-    
+
     entry_id = cursor.lastrowid
-    
+
     # Получаем созданную запись
     async with db.execute(
         "SELECT created_at FROM thought_entries WHERE id = ?",
         (entry_id,)
     ) as cur:
         row = await cur.fetchone()
-    
+
     return {
         "id": str(entry_id),
         "situation": entry.situation,
         "thought": entry.thought,
         "emotions": entry.emotions,
         "emotionIntensity": entry.emotionIntensity,
-        "distortion": entry.distortion,
-        "alternativeThought": entry.alternativeThought,
+        "reaction": entry.reaction,
         "createdAt": row[0] if row else None,
     }
 
@@ -138,21 +133,21 @@ async def get_diary_stats(
     user_id: int = Depends(get_current_user),
     db=Depends(get_db)
 ):
-    """Получить статистику дневника."""
+    """Получить статистику дневника (схема СМЭР)."""
     # Общее количество записей
     async with db.execute(
         "SELECT COUNT(*) FROM thought_entries WHERE user_id = ?",
         (user_id,)
     ) as cursor:
         total = (await cursor.fetchone())[0]
-    
+
     # Частые эмоции
     async with db.execute(
         "SELECT emotions_json FROM thought_entries WHERE user_id = ?",
         (user_id,)
     ) as cursor:
         rows = await cursor.fetchall()
-    
+
     emotion_counts = {}
     for row in rows:
         if row[0]:
@@ -162,26 +157,11 @@ async def get_diary_stats(
                     emotion_counts[e] = emotion_counts.get(e, 0) + 1
             except:
                 pass
-    
+
     # Сортируем по частоте
     top_emotions = sorted(emotion_counts.items(), key=lambda x: x[1], reverse=True)[:5]
-    
-    # Частые искажения
-    async with db.execute(
-        """SELECT distortion, COUNT(*) as cnt 
-           FROM thought_entries 
-           WHERE user_id = ? AND distortion IS NOT NULL
-           GROUP BY distortion
-           ORDER BY cnt DESC
-           LIMIT 5""",
-        (user_id,)
-    ) as cursor:
-        distortion_rows = await cursor.fetchall()
-    
-    top_distortions = [{"id": row[0], "count": row[1]} for row in distortion_rows]
-    
+
     return {
         "totalEntries": total,
         "topEmotions": [{"id": e[0], "count": e[1]} for e in top_emotions],
-        "topDistortions": top_distortions,
     }
