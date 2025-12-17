@@ -139,6 +139,7 @@ CREATE TABLE IF NOT EXISTS tests (
     description_ru TEXT,
     track TEXT DEFAULT 'all',
     frequency TEXT DEFAULT 'daily',
+    min_risk_level TEXT,                -- low, medium, high
     show_after_relapse BOOLEAN DEFAULT FALSE,
     show_on_high_urge BOOLEAN DEFAULT FALSE,
     cooldown_days INTEGER DEFAULT 1,
@@ -311,7 +312,7 @@ async def migrate_to_v3(db):
 
 
 async def migrate_add_reminders(db):
-    """Миграция: добавляет поля для уведомлений."""
+    """Миграция: добавляет поля для уведомлений и другие недостающие колонки."""
 
     # Добавляем колонки в users если их нет
     columns_to_add = [
@@ -324,12 +325,18 @@ async def migrate_add_reminders(db):
     for col_name, col_type in columns_to_add:
         try:
             await db.execute(f"ALTER TABLE users ADD COLUMN {col_name} {col_type}")
-            print(f"✅ Added column {col_name}")
+            print(f"[OK] Added column users.{col_name}")
         except:
             pass  # Колонка уже существует
 
+    # Добавляем min_risk_level в tests если нет
+    try:
+        await db.execute("ALTER TABLE tests ADD COLUMN min_risk_level TEXT")
+        print("[OK] Added column tests.min_risk_level")
+    except:
+        pass  # Колонка уже существует
+
     await db.commit()
-    print("✅ Reminder fields migration complete")
 
 
 if __name__ == "__main__":

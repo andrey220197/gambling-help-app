@@ -10,17 +10,57 @@ import json
 from app.db.tests_level_a import LEVEL_A_TESTS
 from app.db.tests_level_b import LEVEL_B_TESTS
 from app.db.tests_level_cd import LEVEL_C_TESTS, LEVEL_D_TESTS
-from app.db.schema_v2 import apply_schema_v2
+
+
+async def seed_tests_to_db(db: aiosqlite.Connection):
+    """Наполняет БД тестами (принимает готовое соединение)."""
+
+    # Проверяем есть ли уже тесты
+    async with db.execute("SELECT COUNT(*) FROM tests") as cursor:
+        count = (await cursor.fetchone())[0]
+        if count > 0:
+            print(f"[OK] Tests already seeded ({count} tests)")
+            return
+
+    test_id = 1
+
+    # Уровень A
+    for code, test in LEVEL_A_TESTS.items():
+        await _insert_test(db, test_id, test)
+        test_id += 1
+
+    # Уровень B
+    for code, test in LEVEL_B_TESTS.items():
+        await _insert_test(db, test_id, test)
+        test_id += 1
+
+    # Уровень C
+    for code, test in LEVEL_C_TESTS.items():
+        await _insert_test(db, test_id, test)
+        test_id += 1
+
+    # Уровень D
+    for code, test in LEVEL_D_TESTS.items():
+        await _insert_test(db, test_id, test)
+        test_id += 1
+
+    await db.commit()
+
+    # Статистика
+    async with db.execute("SELECT COUNT(*) FROM tests") as cursor:
+        count = (await cursor.fetchone())[0]
+        print(f"[OK] {count} tests seeded")
+
+    async with db.execute("SELECT COUNT(*) FROM test_questions") as cursor:
+        count = (await cursor.fetchone())[0]
+        print(f"[OK] {count} test questions seeded")
 
 
 async def seed_tests():
-    """Наполняет БД всеми тестами."""
-    
+    """Наполняет БД всеми тестами (standalone запуск)."""
+
     async with aiosqlite.connect("./app.db") as db:
-        # Применяем схему
-        await apply_schema_v2(db)
-        
-        # Очищаем старые данные
+        # Очищаем старые данные для пересоздания
         await db.execute("DELETE FROM test_questions")
         await db.execute("DELETE FROM tests")
         

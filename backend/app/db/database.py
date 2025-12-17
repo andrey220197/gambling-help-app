@@ -1,6 +1,7 @@
 import aiosqlite
 from app.config import settings
 from app.db.schema_v3 import SCHEMA_V3, migrate_add_reminders
+from app.db.seed_tests import seed_tests_to_db
 
 DATABASE_PATH = settings.DATABASE_URL.replace("sqlite:///", "")
 
@@ -24,6 +25,12 @@ async def init_db():
 
         # Миграция: добавляем поля для уведомлений
         await migrate_add_reminders(db)
+
+        # Seed tests if empty
+        try:
+            await seed_tests_to_db(db)
+        except Exception as e:
+            print(f"[WARN] Could not seed tests: {e}")
 
         # Seed articles if empty
         cursor = await db.execute("SELECT COUNT(*) FROM articles")
