@@ -179,6 +179,7 @@ async def get_test_analytics(
     """Агрегированная аналитика по результатам тестов."""
 
     # Получаем профиль с онбординг-скорами
+    profile = {}
     async with db.execute(
         """SELECT risk_behavior_score, gambling_score, trading_score,
                   digital_score, emotional_regulation_score, risk_level, track
@@ -186,11 +187,9 @@ async def get_test_analytics(
         (user_id,)
     ) as cursor:
         profile_row = await cursor.fetchone()
-
-    profile = {}
-    if profile_row:
-        columns = [d[0] for d in cursor.description]
-        profile = dict(zip(columns, profile_row))
+        if profile_row:
+            columns = [d[0] for d in cursor.description]
+            profile = dict(zip(columns, profile_row))
 
     # Получаем результаты B-тестов за последние 14 дней
     async with db.execute(
