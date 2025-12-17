@@ -78,6 +78,14 @@ export function Profile() {
     }
   }
 
+  // Хелпер для локальной даты (без проблем с UTC)
+  const toLocalDateStr = (date) => {
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
   const chartData = (() => {
     const result = []
     const today = new Date()
@@ -85,7 +93,7 @@ export function Profile() {
     for (let i = 6; i >= 0; i--) {
       const date = new Date(today)
       date.setDate(date.getDate() - i)
-      const dateStr = date.toISOString().split('T')[0]
+      const dateStr = toLocalDateStr(date)
       const dayName = date.toLocaleDateString('ru-RU', { weekday: 'short' })
       const checkin = checkins.find(c => c.date && c.date.startsWith(dateStr))
 
@@ -113,7 +121,7 @@ export function Profile() {
     const result = []
     const today = new Date()
     today.setHours(0, 0, 0, 0)
-    const todayStr = today.toISOString().split('T')[0]
+    const todayStr = toLocalDateStr(today)
 
     // Находим дату первого чек-ина
     let startDate = new Date(today)
@@ -136,7 +144,7 @@ export function Profile() {
     // Генерируем дни от startDate до сегодня
     const current = new Date(startDate)
     while (current <= today) {
-      const dateStr = current.toISOString().split('T')[0]
+      const dateStr = toLocalDateStr(current)
       const checkin = checkins.find(c => c.date && c.date.startsWith(dateStr))
       const isToday = dateStr === todayStr
       result.push({
