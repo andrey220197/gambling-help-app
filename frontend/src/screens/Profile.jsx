@@ -88,7 +88,6 @@ export function Profile() {
       const dateStr = date.toISOString().split('T')[0]
       const dayName = date.toLocaleDateString('ru-RU', { weekday: 'short' })
       const checkin = checkins.find(c => c.date && c.date.startsWith(dateStr))
-      const isToday = dateStr === todayStr
 
       result.push({
         name: dayName,
