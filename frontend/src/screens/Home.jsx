@@ -5,20 +5,20 @@
 import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useStore } from '../store/useStore'
-import { ARTICLES } from '../constants'
+import { ARTICLES, getTrackConfig } from '../constants'
 import { Flame, ArrowRight, Book } from 'lucide-react'
 import * as api from '../api/client'
 
 // Бейдж "Сэкономлено"
 function MoneySavedBadge({ streak, amount }) {
   const saved = streak * amount
-  
+
   const formatMoney = (val) => {
     if (val >= 1000000) return `${(val / 1000000).toFixed(1)} млн`
     if (val >= 1000) return `${Math.floor(val / 1000)} тыс`
     return val.toString()
   }
-  
+
   return (
     <div className="flex items-center gap-2 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100 shadow-sm">
       <span className="text-lg">💰</span>
@@ -32,6 +32,7 @@ function MoneySavedBadge({ streak, amount }) {
 
 export function Home() {
   const { profile, streak, moneySettings } = useStore()
+  const trackConfig = getTrackConfig(profile?.track)
   const [randomArticle, setRandomArticle] = useState(null)
 
   useEffect(() => {
@@ -57,12 +58,13 @@ export function Home() {
         <div className="flex flex-col items-end gap-2">
           <div className="flex items-center gap-1 bg-orange-100 text-orange-600 px-3 py-1.5 rounded-full font-bold text-sm border border-orange-200">
             <Flame size={16} fill="currentColor" />
-            <span>{streak?.current || 0} дн.</span>
+            <span>{streak?.current || 0} {trackConfig.labels.streakUnit.split(' ')[0]}</span>
           </div>
-          {moneySettings?.enabled && moneySettings?.showSaved && (
-            <MoneySavedBadge 
-              streak={streak?.current || 0} 
-              amount={moneySettings.averageAmount || 0} 
+          {/* Деньги только для треков с money: true */}
+          {trackConfig.features.money && moneySettings?.enabled && moneySettings?.showSaved && (
+            <MoneySavedBadge
+              streak={streak?.current || 0}
+              amount={moneySettings.averageAmount || 0}
             />
           )}
         </div>

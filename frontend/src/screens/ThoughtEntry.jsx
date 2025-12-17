@@ -8,15 +8,15 @@ import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/useStore'
 import { Button } from '../components/Button'
 import { triggerHaptic } from '../hooks/useTelegram'
-import {
-  EMOTIONS,
-  COMMON_SITUATIONS, COMMON_THOUGHTS, COMMON_REACTIONS
-} from '../constants'
+import { EMOTIONS, getTrackConfig } from '../constants'
 import { ArrowLeft } from 'lucide-react'
 
 export function ThoughtEntry() {
   const navigate = useNavigate()
-  const { addThoughtEntry } = useStore()
+  const { addThoughtEntry, profile } = useStore()
+
+  // Получаем конфиг трека для контекстного контента
+  const trackConfig = getTrackConfig(profile?.track)
   const [step, setStep] = useState(1)
   const [isSubmitting, setIsSubmitting] = useState(false)
   
@@ -129,9 +129,9 @@ export function ThoughtEntry() {
             </p>
             
             <div className="flex flex-wrap gap-2 mb-2">
-              {COMMON_SITUATIONS.map(s => (
-                <button 
-                  key={s} 
+              {trackConfig.situations.map(s => (
+                <button
+                  key={s}
                   onClick={() => addChip(s, setSituation)}
                   className="bg-slate-100 text-slate-600 px-3 py-1.5 rounded-full text-xs font-bold hover:bg-slate-200 transition-colors"
                 >
@@ -163,9 +163,9 @@ export function ThoughtEntry() {
             </div>
 
             <div className="flex flex-wrap gap-2 mb-2">
-              {COMMON_THOUGHTS.map(t => (
-                <button 
-                  key={t} 
+              {trackConfig.thoughts.map(t => (
+                <button
+                  key={t}
                   onClick={() => addChip(t, setThought)}
                   className="bg-slate-100 text-slate-600 px-3 py-1.5 rounded-full text-xs font-bold hover:bg-slate-200 transition-colors"
                 >
@@ -252,7 +252,7 @@ export function ThoughtEntry() {
             </div>
 
             <div className="flex flex-wrap gap-2 mb-2">
-              {COMMON_REACTIONS.map(r => (
+              {trackConfig.reactions.map(r => (
                 <button
                   key={r}
                   onClick={() => addChip(r, setReaction)}

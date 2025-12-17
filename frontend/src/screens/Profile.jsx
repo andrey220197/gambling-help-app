@@ -13,7 +13,7 @@ import {
   Activity, ChevronRight
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { TRACK_NAMES, TRACK_EMOJIS } from '../constants'
+import { TRACK_NAMES, TRACK_EMOJIS, getTrackConfig } from '../constants'
 import * as api from '../api/client'
 
 const METRICS = [
@@ -118,6 +118,7 @@ export function Profile() {
   const savedTotal = moneySettings?.enabled ? (streak?.current || 0) * (moneySettings.averageAmount || 0) : 0
   const lostTotal = moneyStats?.lostTotal || 0
   const track = profile?.track || 'gambling'
+  const trackConfig = getTrackConfig(track)
 
   const currentMetric = METRICS[activeMetric]
   const currentStreak = streak?.current || 0
@@ -410,35 +411,38 @@ export function Profile() {
         </Link>
       )}
 
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-        <button onClick={() => setShowMoneySettings(!showMoneySettings)} className="w-full p-5 flex items-center justify-between hover:bg-slate-50 transition-colors">
-          <div className="flex items-center gap-3">
-            <Wallet className="text-emerald-500" size={20} />
-            <span className="font-bold text-slate-800">Финансы</span>
-          </div>
-          {showMoneySettings ? <ChevronUp size={20} className="text-slate-400"/> : <ChevronDown size={20} className="text-slate-400"/>}
-        </button>
-        {showMoneySettings ? (
-          <div className="p-5 pt-0 border-t border-slate-100 animate-slide-down">
-            <MoneySettings embedded onSave={() => setShowMoneySettings(false)} />
-          </div>
-        ) : (
-          <div className="p-5 pt-0 pb-6 grid grid-cols-2 gap-4">
-            <div>
-              <div className="text-xs text-slate-400 uppercase font-medium mb-1">Сэкономлено</div>
-              <div className="text-lg font-bold text-emerald-600">
-                {moneySettings?.enabled ? `~${formatMoney(savedTotal)} ₽` : 'Выкл'}
-              </div>
+      {/* Финансы - только для треков с money: true */}
+      {trackConfig.features.money && (
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+          <button onClick={() => setShowMoneySettings(!showMoneySettings)} className="w-full p-5 flex items-center justify-between hover:bg-slate-50 transition-colors">
+            <div className="flex items-center gap-3">
+              <Wallet className="text-emerald-500" size={20} />
+              <span className="font-bold text-slate-800">Финансы</span>
             </div>
-            {moneySettings?.trackLosses && (
+            {showMoneySettings ? <ChevronUp size={20} className="text-slate-400"/> : <ChevronDown size={20} className="text-slate-400"/>}
+          </button>
+          {showMoneySettings ? (
+            <div className="p-5 pt-0 border-t border-slate-100 animate-slide-down">
+              <MoneySettings embedded onSave={() => setShowMoneySettings(false)} />
+            </div>
+          ) : (
+            <div className="p-5 pt-0 pb-6 grid grid-cols-2 gap-4">
               <div>
-                <div className="text-xs text-slate-400 uppercase font-medium mb-1">Потери</div>
-                <div className="text-lg font-bold text-rose-500">-{formatMoney(lostTotal)} ₽</div>
+                <div className="text-xs text-slate-400 uppercase font-medium mb-1">Сэкономлено</div>
+                <div className="text-lg font-bold text-emerald-600">
+                  {moneySettings?.enabled ? `~${formatMoney(savedTotal)} ₽` : 'Выкл'}
+                </div>
               </div>
-            )}
-          </div>
-        )}
-      </div>
+              {moneySettings?.trackLosses && (
+                <div>
+                  <div className="text-xs text-slate-400 uppercase font-medium mb-1">Потери</div>
+                  <div className="text-lg font-bold text-rose-500">-{formatMoney(lostTotal)} ₽</div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Уведомления */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">

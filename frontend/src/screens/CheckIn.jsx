@@ -9,15 +9,17 @@ import { useStore } from '../store/useStore'
 import { TestCard } from '../components/TestCard'
 import { Button } from '../components/Button'
 import { triggerHaptic } from '../hooks/useTelegram'
+import { getTrackConfig } from '../constants'
 import * as api from '../api/client'
-import { 
-  CheckCircle, AlertTriangle, AlertOctagon, 
-  ArrowRight, Book, Heart 
+import {
+  CheckCircle, AlertTriangle, AlertOctagon,
+  ArrowRight, Book, Heart
 } from 'lucide-react'
 
 export function CheckIn() {
   const { addCheckin, profile, checkins, moneySettings, streak } = useStore()
   const navigate = useNavigate()
+  const trackConfig = getTrackConfig(profile?.track)
   
   // Фаза экрана
   const [step, setStep] = useState('loading')
@@ -281,10 +283,10 @@ export function CheckIn() {
       <div className="p-4 space-y-8 pb-24">
         <h1 className="text-2xl font-bold text-slate-800">Как ты сейчас?</h1>
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-10">
-          {renderSlider('urge', 'Тяга к игре/действию', urge, setUrge, 'Нет тяги', 'Невыносимо')}
+          {renderSlider('urge', trackConfig.labels.urgeQuestion, urge, setUrge, 'Нет тяги', 'Невыносимо')}
           {renderSlider('stress', 'Уровень стресса', stress, setStress, 'Спокоен', 'Паника')}
           {renderSlider('mood', 'Настроение', mood, setMood, 'Ужасное', 'Отличное')}
-          
+
           {/* Чекбокс срыва */}
           <div className="pt-6 border-t border-slate-100">
             <label className={`flex items-center gap-4 cursor-pointer p-4 rounded-xl border-2 transition-all ${
@@ -295,18 +297,18 @@ export function CheckIn() {
               }`}>
                 {relapse && <CheckCircle size={16} className="text-white" />}
               </div>
-              <input 
-                type="checkbox" 
-                className="hidden" 
-                checked={relapse} 
+              <input
+                type="checkbox"
+                className="hidden"
+                checked={relapse}
                 onChange={(e) => {
                   setRelapse(e.target.checked)
                   if (e.target.checked) triggerHaptic('heavy')
-                }} 
+                }}
               />
               <div>
                 <span className={`font-bold block ${relapse ? 'text-rose-700' : 'text-slate-700'}`}>
-                  Был срыв сегодня
+                  {trackConfig.labels.relapse}
                 </span>
                 {relapse && (
                   <span className="text-xs text-rose-600">Мы не осуждаем. Это шаг к осознанию.</span>
@@ -341,28 +343,29 @@ export function CheckIn() {
         <div className="bg-rose-100 p-4 rounded-full text-rose-600 mb-6">
           <AlertOctagon size={48} />
         </div>
-        <h2 className="text-2xl font-bold text-slate-800 mb-4">Был срыв сегодня?</h2>
+        <h2 className="text-2xl font-bold text-slate-800 mb-4">{trackConfig.labels.relapse}?</h2>
         <p className="text-slate-500 mb-8 leading-relaxed">
           Это не провал — это информация для анализа. <br/>
-          Ваша серия дней ({previousStreak}) начнётся заново, но весь накопленный опыт останется с вами.
+          Ваша серия ({previousStreak} {trackConfig.labels.streakUnit}) начнётся заново, но весь накопленный опыт останется с вами.
         </p>
         <div className="space-y-3 w-full">
-          <Button 
-            variant="danger" 
-            fullWidth 
+          <Button
+            variant="danger"
+            fullWidth
             onClick={() => {
-              if (moneySettings?.trackLosses) {
+              // Деньги только для треков с money: true
+              if (trackConfig.features.money && moneySettings?.trackLosses) {
                 setStep('relapse_amount')
               } else {
                 finalizeSubmit(true, null)
               }
             }}
           >
-            Да, был срыв
+            Да, {trackConfig.labels.relapseShort.toLowerCase()}
           </Button>
-          <Button 
-            variant="secondary" 
-            fullWidth 
+          <Button
+            variant="secondary"
+            fullWidth
             onClick={() => {
               setRelapse(false)
               setStep('form')
