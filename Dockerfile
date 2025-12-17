@@ -17,7 +17,8 @@ RUN cd /app/frontend && npm install
 
 COPY . /app/
 
-# Собираем фронтенд
+# Пересобираем фронтенд (dist уже в репо, но на всякий случай)
+ARG CACHEBUST=1
 RUN cd /app/frontend && npm run build
 
 # Создаём папку для persistent data
