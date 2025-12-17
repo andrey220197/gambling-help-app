@@ -55,27 +55,35 @@ class TestEngine:
         profile: Dict
     ) -> Optional[Dict]:
         """Возвращает тест онбординга.
-        
-        Упрощённый флоу:
+
+        Флоу:
         - day 0/1: A1 (импульсивность) -> выбор трека
-        - day 2: A2 только для gambling, остальные сразу в ЛК
+        - day 2: A2 для gambling, A3 для trading, A4 для digital
+        - day 3: A5 (эмоциональная регуляция) для всех
         """
-        
+
         day = profile.get("onboarding_day", 0)
         track = profile.get("track", "gambling")
-        
+
         print(f"=== ONBOARDING: day={day}, track={track} ===")
-        
+
         if day == 0 or day == 1:
             return self._format_test(LEVEL_A_TESTS["A1"])
-        
+
         elif day == 2:
-            # Только для gambling показываем дополнительный тест
+            # Показываем тест по выбранному треку
             if track == "gambling":
                 return self._format_test(LEVEL_A_TESTS["A2"])
-            # Для trading/digital - сразу завершаем онбординг
+            elif track == "trading":
+                return self._format_test(LEVEL_A_TESTS["A3"])
+            elif track == "digital":
+                return self._format_test(LEVEL_A_TESTS["A4"])
             return None
-        
+
+        elif day == 3:
+            # Финальный тест эмоциональной регуляции для всех
+            return self._format_test(LEVEL_A_TESTS["A5"])
+
         return None
     async def complete_onboarding_test(
         self,
@@ -85,20 +93,20 @@ class TestEngine:
         score: int
     ) -> Dict:
         """Обрабатывает завершение теста онбординга.
-        
-        Упрощённый флоу:
-        - A1 -> show_track_selection
-        - A2 (gambling) -> onboarding_completed
-        - Для trading/digital A1 сразу завершает онбординг после выбора трека
+
+        Флоу:
+        - A1 -> show_track_selection, day=2
+        - A2/A3/A4 -> day=3 (переход к A5)
+        - A5 -> onboarding_completed
         """
-        
+
         test = LEVEL_A_TESTS.get(test_code)
         if not test:
             return {"error": "Test not found"}
-        
+
         interpretation = self._interpret_score(test, score)
         profile_updates = {}
-        
+
         if test_code == "A1":
             profile_updates["risk_behavior_score"] = score
             profile_updates["onboarding_day"] = 2
@@ -109,18 +117,33 @@ class TestEngine:
                 "show_track_selection": True,
                 "track_options": test.get("track_options", []),
             }
-        
+
         elif test_code == "A2":
-            # A2 завершает онбординг для gambling
+            # A2 (gambling) -> переход к A5
             profile_updates["gambling_score"] = score
-            profile_updates["onboarding_completed"] = True
             profile_updates["onboarding_day"] = 3
+
+        elif test_code == "A3":
+            # A3 (trading) -> переход к A5
+            profile_updates["trading_score"] = score
+            profile_updates["onboarding_day"] = 3
+
+        elif test_code == "A4":
+            # A4 (digital) -> переход к A5
+            profile_updates["digital_score"] = score
+            profile_updates["onboarding_day"] = 3
+
+        elif test_code == "A5":
+            # A5 завершает онбординг для всех
+            profile_updates["emotional_regulation_score"] = score
+            profile_updates["onboarding_completed"] = True
+            profile_updates["onboarding_day"] = 4
             risk_level = await self._calculate_risk_level(user_id, score)
             profile_updates["risk_level"] = risk_level
-        
+
         await self._update_user_profile(user_id, profile_updates)
         await self._save_test_result(user_id, test_code, answers, score, interpretation)
-        
+
         return {
             "interpretation": interpretation,
             "profile_updates": profile_updates,
@@ -219,47 +242,64 @@ class TestEngine:
         context: Dict,
         profile: Dict
     ) -> Optional[Dict]:
-        """Выбирает ежедневный тест с ротацией."""
-        
+        """Выбирает ежедневный тест с ротацией.
+
+        Логика: всегда показываем 1 тест после чек-ина.
+        - При высоком urge/stress — приоритетные тесты
+        - Иначе — ротация из расширенного пула
+        """
+
         urge = context.get("urge", 0) or 0
         stress = context.get("stress", 0) or 0
-        
-        # Обязательные тесты каждый день
-        mandatory = ["B1_1"]  # Базовый уровень тяги
-        
-        # Условные тесты при высоких показателях
-        conditional = []
+        relapse = context.get("relapse", False)
+        track = profile.get("track", "gambling")
+
+        # Приоритетные тесты при высоких показателях
+        priority = []
+        if relapse:
+            priority.extend(["B1_2", "B3_1"])  # Триггеры тяги, эмоциональные триггеры
         if urge >= 7:
-            conditional.extend(["B1_2", "B7_1"])  # Детали тяги, триггеры
+            priority.extend(["B1_2", "B7_1", "B7_2"])  # Детали тяги, когнитивные искажения
         if stress >= 7:
-            conditional.extend(["B5_1", "B5_2"])  # Стресс-тесты
-        
-        # Пул для ротации (когда нет срочных)
-        rotation_pool = ["B2_1", "B3_1", "B4_1", "B6_1"]
-        
-        # Выбираем тест
-        # 1. Сначала обязательные (если не прошёл сегодня)
-        for code in mandatory:
+            priority.extend(["B5_1", "B5_2", "B4_3"])  # Стресс, копинг
+
+        # Расширенный пул для ежедневной ротации
+        rotation_pool = [
+            # B1: Тяга
+            "B1_1", "B1_3", "B1_4", "B1_5", "B1_6",
+            # B2: Импульсы
+            "B2_1", "B2_2", "B2_4",
+            # B3: Триггеры
+            "B3_1", "B3_2", "B3_3", "B3_4",
+            # B4: Эмоции
+            "B4_1", "B4_2", "B4_3",
+            # B6: Сон/энергия
+            "B6_1", "B6_2",
+        ]
+
+        # Добавляем специфичные для gambling/trading тесты
+        if track in ["gambling", "trading"]:
+            rotation_pool.extend(["B2_3", "B7_1", "B7_2", "B7_3"])
+
+        # 1. Сначала приоритетные (если не прошёл сегодня)
+        for code in priority:
             if not await self._was_completed_today(user_id, code):
                 test = LEVEL_B_TESTS.get(code)
                 if test:
                     return self._format_test(test)
-        
-        # 2. Условные тесты
-        for code in conditional:
-            if not await self._was_completed_today(user_id, code):
-                test = LEVEL_B_TESTS.get(code)
-                if test:
-                    return self._format_test(test)
-        
-        # 3. Ротация из пула (выбираем давно не проходимый)
+
+        # 2. Ротация — выбираем тест, который давно не проходил
         test_code = await self._get_least_recent_test(user_id, rotation_pool)
         if test_code and not await self._was_completed_today(user_id, test_code):
             test = LEVEL_B_TESTS.get(test_code)
             if test:
                 return self._format_test(test)
-        
-        # Всё пройдено — возвращаем None
+
+        # 3. Fallback — базовый тест тяги
+        if not await self._was_completed_today(user_id, "B1_1"):
+            return self._format_test(LEVEL_B_TESTS.get("B1_1"))
+
+        # Всё пройдено за сегодня
         return None
     
     # =========================================
