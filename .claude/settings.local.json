@@ -28,7 +28,8 @@
       "Bash(\"C:/Users/andrey220197/Desktop/clade_lud/gambling-help-app/venv/Scripts/python.exe\" /tmp/profile_update.py)",
       "Bash(\"C:/Users/andrey220197/Desktop/clade_lud/gambling-help-app/venv/Scripts/python.exe\" -c \"print(''test'')\")",
       "Bash(python -c:*)",
-      "Bash(\"C:/Users/andrey220197/Desktop/clade_lud/gambling-help-app/venv/Scripts/python.exe\" -c \"\nimport sys\nsys.path.insert(0, ''C:/Users/andrey220197/Desktop/clade_lud/gambling-help-app/backend'')\nfrom app.api.tests import *\nprint(''Import OK'')\n\")"
+      "Bash(\"C:/Users/andrey220197/Desktop/clade_lud/gambling-help-app/venv/Scripts/python.exe\" -c \"\nimport sys\nsys.path.insert(0, ''C:/Users/andrey220197/Desktop/clade_lud/gambling-help-app/backend'')\nfrom app.api.tests import *\nprint(''Import OK'')\n\")",
+      "Bash(grep:*)"
     ]
   }
 }

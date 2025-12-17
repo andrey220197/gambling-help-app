@@ -202,20 +202,20 @@ export function Profile() {
         <div>
           <h2 className="font-bold text-slate-800 text-lg">{TRACK_NAMES[track] || 'Азартные игры'}</h2>
           <p className="text-slate-500 text-sm font-medium">
-            В приложении <span className="text-brand-600">{streak?.current || 0} дней</span>
+            Текущая серия: <span className="text-brand-600">{currentStreak} {trackConfig.labels.streakUnit}</span>
           </p>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-          <div className="text-slate-400 text-xs mb-1 font-medium uppercase tracking-wide">Рекорд серии</div>
+          <div className="text-slate-400 text-xs mb-1 font-medium uppercase tracking-wide">Рекорд</div>
           <div className="text-3xl font-bold text-brand-600">
             {bestStreak} <span className="text-sm text-slate-400 font-normal">дн.</span>
           </div>
         </div>
         <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
-          <div className="text-slate-400 text-xs mb-1 font-medium uppercase tracking-wide">Всего чек-инов</div>
+          <div className="text-slate-400 text-xs mb-1 font-medium uppercase tracking-wide">Чек-инов</div>
           <div className="text-3xl font-bold text-slate-700">{checkins.length}</div>
         </div>
       </div>
