@@ -338,7 +338,14 @@ export const useStore = create(
       /**
        * Сброс прогресса (полный выход).
        */
-      resetProgress: () => {
+      resetProgress: async () => {
+        try {
+          // Сбрасываем на сервере
+          await api.resetProgress()
+        } catch (e) {
+          console.error('Failed to reset on server:', e)
+        }
+        // Сбрасываем локально
         get().logout()
         window.location.reload()
       },

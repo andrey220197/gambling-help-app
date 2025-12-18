@@ -71,6 +71,12 @@ export async function recoverAccount(recoveryCode) {
   })
 }
 
+export async function resetProgress() {
+  return request('/auth/reset', {
+    method: 'POST',
+  })
+}
+
 export async function getMe() {
   return request('/auth/me')
 }

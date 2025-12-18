@@ -219,3 +219,44 @@ async def recover_account(
         user_id=user_id,
         is_new_user=False,
     )
+
+
+@router.post("/reset")
+async def reset_progress(
+    user_id: int = Depends(get_current_user),
+    db: aiosqlite.Connection = Depends(get_db)
+):
+    """Полный сброс прогресса пользователя."""
+    # Сбрасываем streak
+    await db.execute(
+        "UPDATE streaks SET current_streak = 0, best_streak = 0, last_checkin_date = NULL WHERE user_id = ?",
+        (user_id,)
+    )
+
+    # Удаляем чек-ины
+    await db.execute("DELETE FROM checkins WHERE user_id = ?", (user_id,))
+
+    # Удаляем результаты тестов
+    await db.execute("DELETE FROM test_results WHERE user_id = ?", (user_id,))
+
+    # Удаляем записи дневника
+    await db.execute("DELETE FROM thought_entries WHERE user_id = ?", (user_id,))
+
+    # Удаляем историю денег
+    await db.execute("DELETE FROM money_history WHERE user_id = ?", (user_id,))
+
+    # Сбрасываем профиль (онбординг заново)
+    await db.execute(
+        "UPDATE user_profiles SET onboarding_completed = 0, onboarding_day = 0, track = NULL WHERE user_id = ?",
+        (user_id,)
+    )
+
+    # Сбрасываем настройки денег
+    await db.execute(
+        "UPDATE money_settings SET enabled = 0, average_amount = 0, show_saved = 1, track_losses = 0 WHERE user_id = ?",
+        (user_id,)
+    )
+
+    await db.commit()
+
+    return {"success": True, "message": "Progress reset successfully"}
