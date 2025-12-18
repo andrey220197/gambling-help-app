@@ -190,7 +190,7 @@ export function Profile() {
     <div className="p-4 space-y-6 pb-24">
       <div className="flex justify-between items-center pt-2">
         <h1 className="text-2xl font-bold text-slate-800">Профиль</h1>
-        <button onClick={resetProgress} className="p-2 text-slate-400 hover:text-rose-500">
+        <button onClick={() => { console.log('Reset clicked'); resetProgress(); }} className="p-2 text-slate-400 hover:text-rose-500">
           <LogOut size={20} />
         </button>
       </div>
