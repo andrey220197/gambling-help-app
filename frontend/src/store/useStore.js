@@ -339,19 +339,8 @@ export const useStore = create(
        * Сброс прогресса (полный выход).
        */
       resetProgress: () => {
-        const tg = window.Telegram?.WebApp
-        const doReset = () => {
-          get().logout()
-          window.location.reload()
-        }
-
-        if (tg?.showConfirm) {
-          tg.showConfirm('Вы уверены? Это сотрёт все локальные данные.', (confirmed) => {
-            if (confirmed) doReset()
-          })
-        } else if (confirm('Вы уверены? Это сотрёт все локальные данные.')) {
-          doReset()
-        }
+        get().logout()
+        window.location.reload()
       },
     }),
     {
